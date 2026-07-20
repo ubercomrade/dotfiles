@@ -11,6 +11,34 @@ One repository for a minimal Qt-oriented Wayland desktop on Arch Linux or NixOS.
 
 Do not manage the same `$HOME` with both targets. In dual boot, use separate home directories or deploy only one target to a shared home.
 
+## Prerequisites
+
+Both targets assume a 64-bit UEFI laptop, an active internet connection, and a partitioned, mounted target filesystem. Disk partitioning, encryption, GPU driver selection, and secure boot enrollment are intentionally outside this repository.
+
+### Arch Linux
+
+Install Arch base with systemd first. Create the regular user that will own the dotfiles, grant it `sudo` access through the `wheel` group, and connect to the network. The Arch installer configures the graphical stack, NetworkManager, Bluetooth, and Ly; it does not create users or configure a bootloader.
+
+### NixOS
+
+The NixOS host in this repository assumes UEFI, `Asia/Novosibirsk`, `en_US.UTF-8`, US console keymap, host name `laptop`, and user `anton`. From the NixOS installation ISO, mount the target root at `/mnt`, mount the EFI system partition, then prepare and install the flake:
+
+```sh
+nixos-generate-config --root /mnt
+git clone https://github.com/ubercomrade/dotfiles.git /mnt/etc/nixos/dotfiles
+cp /mnt/etc/nixos/hardware-configuration.nix \
+  /mnt/etc/nixos/dotfiles/nixos/hosts/laptop/hardware-configuration.nix
+nixos-install --flake /mnt/etc/nixos/dotfiles/nixos#laptop
+nixos-enter --root /mnt -c 'passwd anton'
+```
+
+Set the root password when `nixos-install` prompts for it. The generated hardware configuration belongs in version control because it is required to reproduce the machine and contains no credentials.
+
+## Installer choices
+
+- **Arch:** use the official ISO and `archinstall`. Select UEFI/GPT, NetworkManager, your CPU microcode, a sudo-enabled user, and **No desktop**. Use LUKS on a laptop; select `systemd-boot` for a single-boot UEFI installation. The repository installs niri and all desktop packages later.
+- **NixOS:** use the graphical ISO for the first installation and select **No desktop**. It is the simplest way to set up disks, LUKS, Wi-Fi, timezone, and the `anton` user. Use the minimal ISO only when you want to configure partitioning and mounting manually.
+
 ## Arch Linux
 
 On a console-only Arch installation, install Git once, clone the repository, then apply the Arch target:
