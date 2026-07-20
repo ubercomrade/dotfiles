@@ -17,8 +17,8 @@ On a console-only Arch installation, install Git once, clone the repository, the
 
 ```sh
 sudo pacman -Syu git
-git clone <repository-url> ~/Documents/dotfiles
-cd ~/Documents/dotfiles
+git clone https://github.com/ubercomrade/dotfiles.git
+cd dotfiles
 ./apply.sh --os arch --packages --stow --enable-services
 ```
 
@@ -35,8 +35,8 @@ To update only user config:
 Install NixOS 26.05 normally, clone this repository, and generate hardware configuration on the target machine:
 
 ```sh
-git clone <repository-url> ~/Documents/dotfiles
-cd ~/Documents/dotfiles
+git clone https://github.com/ubercomrade/dotfiles.git
+cd dotfiles
 nixos-generate-config --show-hardware-config > nixos/hosts/laptop/hardware-configuration.nix
 git add nixos/hosts/laptop/hardware-configuration.nix
 nix flake lock path:./nixos
