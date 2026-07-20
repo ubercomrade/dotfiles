@@ -33,5 +33,6 @@
     NIXOS_OZONE_WL = "1";
     QT_QPA_PLATFORMTHEME = "qt6ct";
   };
+  fonts.packages = [ pkgs.noto-fonts ];
   environment.systemPackages = [ pkgs.kdePackages.polkit-kde-agent-1 ];
 }

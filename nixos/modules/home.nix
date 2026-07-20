@@ -1,4 +1,4 @@
-{ pkgs, hostName, username, ... }:
+{ pkgs, homeStateVersion, hostName, username, ... }:
 let
   shared = ../../shared/stow;
   host = ../../hosts + "/${hostName}/arch/stow";
@@ -6,10 +6,11 @@ in
 {
   home.username = username;
   home.homeDirectory = "/home/${username}";
-  home.stateVersion = "26.05";
+  home.stateVersion = homeStateVersion;
 
   home.packages = with pkgs; [
     quickshell
+    xwayland-satellite
     kitty
     kdePackages.dolphin
     firefox

@@ -5,20 +5,24 @@ set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 install_packages=false
+install_niri_packages=false
 install_stow=false
+install_niri_config=false
 enable_services=false
 host="generic"
 
 usage() {
     cat <<'EOF'
-Usage: ./install.sh [--host NAME] [--packages] [--stow] [--enable-services]
+Usage: ./install.sh [--host NAME] [--niri-packages] [--packages] [--niri-config] [--stow] [--enable-services]
 
-Without arguments, installs official packages and deploys user configuration.
+At least one action flag is required. Existing files are never overwritten.
 
   --host NAME        Apply a hardware profile; defaults to generic.
+  --niri-packages    Install only packages required by the Niri session.
   --packages         Install common and host-specific package manifests.
+  --niri-config      Deploy only the Niri session configuration.
   --stow             Symlink all stow packages into $HOME.
-  --enable-services  Enable NetworkManager, Bluetooth, and Ly on tty2.
+  --enable-services  Enable NetworkManager, Bluetooth, and Ly if needed.
   --help             Show this help.
 
 --enable-services changes system services and is intentionally opt-in.
@@ -32,7 +36,9 @@ while (($#)); do
             host="$2"
             shift
             ;;
+        --niri-packages) install_niri_packages=true ;;
         --packages) install_packages=true ;;
+        --niri-config) install_niri_config=true ;;
         --stow) install_stow=true ;;
         --enable-services) enable_services=true ;;
         --help) usage; exit 0 ;;
@@ -45,9 +51,9 @@ while (($#)); do
     shift
 done
 
-if ! $install_packages && ! $install_stow && ! $enable_services; then
-    install_packages=true
-    install_stow=true
+if ! $install_niri_packages && ! $install_packages && ! $install_niri_config && ! $install_stow && ! $enable_services; then
+    usage >&2
+    exit 2
 fi
 
 [[ "$host" =~ ^[a-zA-Z0-9._-]+$ && "$host" != "." && "$host" != ".." ]] || {
@@ -85,7 +91,7 @@ install_manifests() {
     fi
 }
 
-if $install_packages || $enable_services; then
+if $install_niri_packages || $install_packages || $enable_services; then
     if [[ ! -f /etc/arch-release ]]; then
         printf 'This bootstrap supports Arch Linux only.\n' >&2
         exit 1
@@ -94,31 +100,51 @@ fi
 
 if $install_packages; then
     install_manifests "$repo_dir/arch/packages/common.txt" "$host_dir/arch/packages.txt"
-    uv tool install --upgrade jupytext
+    command -v jupytext >/dev/null || uv tool install jupytext
+elif $install_niri_packages; then
+    install_manifests "$repo_dir/arch/packages/niri.txt"
 fi
 
-if $install_stow; then
+if $install_niri_config || $install_stow; then
     command -v stow >/dev/null || {
-        printf 'GNU Stow is not installed. Run ./install.sh --packages first.\n' >&2
+        printf 'GNU Stow is not installed. Run with --niri-packages or --packages first.\n' >&2
         exit 1
     }
 
     stow_dir="$repo_dir/shared/stow"
-    packages=()
-    for path in "$stow_dir"/*; do
-        [[ -d "$path" ]] && packages+=("$(basename "$path")")
-    done
-
-    # Keep directories real so the host-specific file can coexist with shared links.
-    stow --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
+    if $install_stow; then
+        packages=()
+        for path in "$stow_dir"/*; do
+            [[ -d "$path" ]] && packages+=("$(basename "$path")")
+        done
+    else
+        packages=(niri quickshell mako portal systemd)
+    fi
 
     niri_dir="$HOME/.config/niri"
     host_link="$niri_dir/host.kdl"
-    mkdir -p "$niri_dir"
-    if [[ -e "$host_link" && ! -L "$host_link" ]]; then
-        printf 'Refusing to replace non-symlink host configuration: %s\n' "$host_link" >&2
+    if [[ -L "$host_link" ]]; then
+        current_host_target=$(readlink "$host_link")
+        if [[ "$current_host_target" != "$repo_dir/hosts/"*/arch/stow/.config/niri/host.kdl ]]; then
+            printf 'Refusing to replace unmanaged host configuration: %s\n' "$host_link" >&2
+            exit 1
+        fi
+    elif [[ -e "$host_link" ]]; then
+        printf 'Refusing to replace existing host configuration: %s\n' "$host_link" >&2
         exit 1
     fi
+
+    systemctl --user show-environment >/dev/null || {
+        printf 'The systemd user manager is unavailable; configuration was not deployed.\n' >&2
+        exit 1
+    }
+
+    # Detect Stow conflicts before changing the target tree.
+    stow --simulate --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
+
+    # Keep directories real so the host-specific file can coexist with shared links.
+    stow --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
+    mkdir -p "$niri_dir"
     ln -sfn "$host_dir/arch/stow/.config/niri/host.kdl" "$host_link"
     systemctl --user enable polkit-kde-agent.service
 fi
@@ -126,6 +152,44 @@ fi
 if $enable_services; then
     sudo systemctl enable NetworkManager.service
     sudo systemctl enable bluetooth.service
-    sudo systemctl enable ly@tty2.service
-    sudo systemctl disable getty@tty2.service
+
+    existing_ly_unit=""
+    for ly_template in ly ly-kmsconvt; do
+        for tty in {1..12}; do
+            ly_unit="${ly_template}@tty${tty}.service"
+            ly_state=$(systemctl is-enabled "$ly_unit" 2>/dev/null || true)
+            case "$ly_state" in
+                enabled|enabled-runtime|linked|linked-runtime)
+                    existing_ly_unit="$ly_unit"
+                    break
+                    ;;
+                disabled|indirect|static|not-found|masked|masked-runtime|generated|transient)
+                    ly_active_state=$(systemctl is-active "$ly_unit" 2>/dev/null || true)
+                    case "$ly_active_state" in
+                        active|activating|reloading)
+                            existing_ly_unit="$ly_unit"
+                            break
+                            ;;
+                        inactive|failed|unknown|deactivating) ;;
+                        *)
+                            printf 'Unable to determine active state for %s.\n' "$ly_unit" >&2
+                            exit 1
+                            ;;
+                    esac
+                    ;;
+                *)
+                    printf 'Unable to determine service state for %s.\n' "$ly_unit" >&2
+                    exit 1
+                    ;;
+            esac
+        done
+        [[ -z "$existing_ly_unit" ]] || break
+    done
+
+    if [[ -n "$existing_ly_unit" ]]; then
+        printf 'Keeping existing Ly service: %s\n' "$existing_ly_unit"
+    else
+        sudo systemctl enable ly@tty2.service
+        sudo systemctl disable getty@tty2.service
+    fi
 fi

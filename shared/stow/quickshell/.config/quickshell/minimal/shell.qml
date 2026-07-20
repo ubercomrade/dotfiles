@@ -195,14 +195,13 @@ Scope {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    model: DesktopEntries.applications
+                    model: DesktopEntries.applications.values.filter(entry =>
+                        entry.name.toLowerCase().includes(query.text.toLowerCase()))
                     spacing: 4
 
                     delegate: Button {
                         required property var modelData
                         width: ListView.view.width
-                        visible: modelData.name.toLowerCase().includes(query.text.toLowerCase())
-                        height: visible ? implicitHeight : 0
                         text: modelData.name
                         onClicked: {
                             modelData.execute()

@@ -1,26 +1,15 @@
-# Hardware-independent official Arch packages. One package name per line.
+# Packages required by the Niri session and its configured bindings.
 niri
 xwayland-satellite
 quickshell
 stow
-git
 kitty
 dolphin
 firefox
-libreoffice-fresh
-kate
-okular
-gwenview
-ark
-kcalc
-pavucontrol-qt
-breeze
-breeze-icons
-qt6ct
+upower
 networkmanager
 bluez
-bluez-utils
-upower
+ly
 pipewire
 pipewire-pulse
 wireplumber
@@ -29,7 +18,6 @@ playerctl
 grim
 slurp
 wl-clipboard
-cliphist
 mako
 swaylock
 swayidle
@@ -38,18 +26,5 @@ xdg-desktop-portal-gtk
 xdg-desktop-portal-gnome
 gnome-keyring
 polkit-kde-agent
-ly
 xdg-user-dirs
 noto-fonts
-pixi
-julia
-zed
-neovim
-nodejs-lts-krypton
-imagemagick
-python-pynvim
-python-jupyter-client
-uv
-fd
-ripgrep
-lazygit

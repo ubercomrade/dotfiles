@@ -1,4 +1,4 @@
-// Current laptop and its usual external display.
+// Example laptop and its usual external display.
 output "eDP-1" {
     mode "2520x1680@90.0"
     scale 1.5
