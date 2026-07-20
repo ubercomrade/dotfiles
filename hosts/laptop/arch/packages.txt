@@ -1,0 +1,1 @@
+# Laptop-specific packages. Keep this file empty until a hardware-only dependency is needed.

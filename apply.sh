@@ -4,7 +4,7 @@ set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 os=""
-host="laptop"
+host=""
 args=()
 
 usage() {
@@ -12,7 +12,7 @@ usage() {
 Usage: ./apply.sh --os {arch|nixos} [--host NAME] [installer options]
 
 Arch passes remaining options to arch/install.sh.
-NixOS runs nixos-rebuild switch --flake .#HOST.
+NixOS runs nixos-rebuild switch for the selected host.
 EOF
 }
 
@@ -45,7 +45,7 @@ case "$os" in
             printf 'The Arch target requires Arch Linux.\n' >&2
             exit 1
         }
-        exec "$repo_dir/arch/install.sh" "${args[@]}"
+        exec "$repo_dir/arch/install.sh" --host "${host:-generic}" "${args[@]}"
         ;;
     nixos)
         [[ -e /etc/NIXOS ]] || {
@@ -56,8 +56,12 @@ case "$os" in
             printf 'NixOS does not accept imperative installer options.\n' >&2
             exit 2
         }
-        flake_dir="$repo_dir/nixos"
-        hardware_config="$flake_dir/hosts/$host/hardware-configuration.nix"
+        [[ -n "$host" ]] || {
+            printf 'NixOS requires an explicit --host NAME.\n' >&2
+            exit 2
+        }
+        flake_dir="$repo_dir"
+        hardware_config="$repo_dir/hosts/$host/nixos/hardware-configuration.nix"
         [[ -f "$hardware_config" ]] || {
             printf 'Missing hardware configuration: %s\n' "$hardware_config" >&2
             printf 'Generate it with nixos-generate-config --show-hardware-config.\n' >&2

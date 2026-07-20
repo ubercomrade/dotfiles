@@ -1,4 +1,4 @@
-# Official Arch packages only. One package name per line.
+# Hardware-independent official Arch packages. One package name per line.
 niri
 quickshell
 stow

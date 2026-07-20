@@ -1,5 +1,0 @@
-# Generate the real file on the target NixOS installation:
-# nixos-generate-config --show-hardware-config > nixos/hosts/laptop/hardware-configuration.nix
-{ ... }:
-{
-}

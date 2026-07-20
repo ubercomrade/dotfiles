@@ -1,12 +1,12 @@
 { lib, ... }:
 {
-  imports = [ ../../modules/desktop.nix ]
+  imports = [ ../../../nixos/modules/desktop.nix ]
     ++ lib.optional (builtins.pathExists ./hardware-configuration.nix) ./hardware-configuration.nix;
 
   assertions = [
     {
       assertion = builtins.pathExists ./hardware-configuration.nix;
-      message = "Generate nixos/hosts/laptop/hardware-configuration.nix with nixos-generate-config before rebuilding.";
+      message = "Generate hosts/laptop/nixos/hardware-configuration.nix with nixos-generate-config before rebuilding.";
     }
   ];
 

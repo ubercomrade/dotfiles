@@ -9,20 +9,26 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, ... }: {
-    nixosConfigurations.laptop = nixpkgs.lib.nixosSystem {
+  outputs = inputs@{ nixpkgs, home-manager, ... }:
+  let
+    mkHost = name: module: nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      specialArgs = { inherit inputs; };
+      specialArgs = { inherit inputs name; };
       modules = [
-        ./hosts/laptop/configuration.nix
+        module
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs; };
-          home-manager.users.anton = import ./modules/home.nix;
+          home-manager.extraSpecialArgs = { inherit inputs name; };
+          home-manager.users.anton = import ./nixos/modules/home.nix;
         }
       ];
+    };
+  in
+  {
+    nixosConfigurations = {
+      laptop = mkHost "laptop" ./hosts/laptop/nixos/default.nix;
     };
   };
 }

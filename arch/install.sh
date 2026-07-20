@@ -7,14 +7,16 @@ repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 install_packages=false
 install_stow=false
 enable_services=false
+host="generic"
 
 usage() {
     cat <<'EOF'
-Usage: ./install.sh [--packages] [--stow] [--enable-services]
+Usage: ./install.sh [--host NAME] [--packages] [--stow] [--enable-services]
 
 Without arguments, installs official packages and deploys user configuration.
 
-  --packages         Install packages listed in arch/packages/pacman.txt.
+  --host NAME        Apply a hardware profile; defaults to generic.
+  --packages         Install common and host-specific package manifests.
   --stow             Symlink all stow packages into $HOME.
   --enable-services  Enable NetworkManager, Bluetooth, and Ly on tty2.
   --help             Show this help.
@@ -30,6 +32,11 @@ fi
 
 while (($#)); do
     case "$1" in
+        --host)
+            (($# >= 2)) || { usage >&2; exit 2; }
+            host="$2"
+            shift
+            ;;
         --packages) install_packages=true ;;
         --stow) install_stow=true ;;
         --enable-services) enable_services=true ;;
@@ -43,19 +50,35 @@ while (($#)); do
     shift
 done
 
+host_dir="$repo_dir/hosts/$host"
+[[ -d "$host_dir/arch/stow" ]] || {
+    printf 'Unknown or incomplete Arch host profile: %s\n' "$host" >&2
+    exit 1
+}
+
+install_manifests() {
+    local packages=()
+    local manifest
+    local package
+
+    for manifest in "$@"; do
+        [[ -f "$manifest" ]] || continue
+        while IFS= read -r package || [[ -n "$package" ]]; do
+            [[ -z "$package" || "$package" == \#* ]] && continue
+            packages+=("$package")
+        done < "$manifest"
+    done
+
+    ((${#packages[@]})) && sudo pacman -Syu --needed "${packages[@]}"
+}
+
 if $install_packages; then
     if [[ ! -f /etc/arch-release ]]; then
         printf 'This bootstrap supports Arch Linux only.\n' >&2
         exit 1
     fi
 
-    packages=()
-    while IFS= read -r package || [[ -n "$package" ]]; do
-        [[ -z "$package" || "$package" == \#* ]] && continue
-        packages+=("$package")
-    done < "$repo_dir/arch/packages/pacman.txt"
-
-    sudo pacman -Syu --needed "${packages[@]}"
+    install_manifests "$repo_dir/arch/packages/common.txt" "$host_dir/arch/packages.txt"
 fi
 
 if $install_stow; then
@@ -72,6 +95,7 @@ if $install_stow; then
 
     # --restow updates existing links but refuses to overwrite real files.
     stow --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
+    stow --dir="$host_dir/arch" --target="$HOME" --restow stow
 fi
 
 if $enable_services; then

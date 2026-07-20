@@ -1,0 +1,5 @@
+# Generate this file on the target NixOS system:
+# nixos-generate-config --show-hardware-config > hosts/<name>/nixos/hardware-configuration.nix
+{ ... }:
+{
+}

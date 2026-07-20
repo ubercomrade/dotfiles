@@ -1,0 +1,12 @@
+// Current laptop and its usual external display.
+output "eDP-1" {
+    mode "2520x1680@90.0"
+    scale 1.5
+    position x=0 y=0
+}
+
+output "HDMI-A-1" {
+    mode "1920x1080@60.0"
+    scale 1.0
+    position x=1680 y=0
+}
