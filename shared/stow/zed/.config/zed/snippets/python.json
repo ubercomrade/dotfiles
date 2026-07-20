@@ -1,0 +1,7 @@
+{
+  "Cell marker": {
+    "prefix": "cell",
+    "body": ["# %%", "$0"],
+    "description": "Insert Python cell marker"
+  }
+}

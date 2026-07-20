@@ -1,0 +1,11 @@
+[
+  {
+    "context": "Editor && extension == py",
+    "bindings": {
+      "shift-alt-c": [
+        "editor::InsertSnippet",
+        { "name": "Cell marker", "language": "python" }
+      ]
+    }
+  }
+]
