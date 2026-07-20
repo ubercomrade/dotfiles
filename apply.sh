@@ -39,6 +39,11 @@ while (($#)); do
     esac
 done
 
+if [[ -n "$host" && !( "$host" =~ ^[a-zA-Z0-9._-]+$ && "$host" != "." && "$host" != ".." ) ]]; then
+    printf 'Invalid host profile name: %s\n' "$host" >&2
+    exit 2
+fi
+
 case "$os" in
     arch)
         [[ -f /etc/arch-release ]] || {
@@ -68,7 +73,7 @@ case "$os" in
             exit 1
         }
         sudo nixos-rebuild switch --flake "path:$flake_dir#$host"
-        printf 'Set a password for anton before logging out: sudo passwd anton\n'
+        printf 'Set a password for the configured user before logging out.\n'
         ;;
     *)
         usage >&2

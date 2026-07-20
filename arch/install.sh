@@ -25,11 +25,6 @@ Without arguments, installs official packages and deploys user configuration.
 EOF
 }
 
-if (($# == 0)); then
-    install_packages=true
-    install_stow=true
-fi
-
 while (($#)); do
     case "$1" in
         --host)
@@ -50,6 +45,16 @@ while (($#)); do
     shift
 done
 
+if ! $install_packages && ! $install_stow && ! $enable_services; then
+    install_packages=true
+    install_stow=true
+fi
+
+[[ "$host" =~ ^[a-zA-Z0-9._-]+$ && "$host" != "." && "$host" != ".." ]] || {
+    printf 'Invalid host profile name: %s\n' "$host" >&2
+    exit 2
+}
+
 host_dir="$repo_dir/hosts/$host"
 [[ -d "$host_dir/arch/stow" ]] || {
     printf 'Unknown or incomplete Arch host profile: %s\n' "$host" >&2
@@ -64,21 +69,32 @@ install_manifests() {
     for manifest in "$@"; do
         [[ -f "$manifest" ]] || continue
         while IFS= read -r package || [[ -n "$package" ]]; do
+            package="${package#"${package%%[![:space:]]*}"}"
+            package="${package%"${package##*[![:space:]]}"}"
             [[ -z "$package" || "$package" == \#* ]] && continue
+            [[ "$package" != -* ]] || {
+                printf 'Invalid package name in %s: %s\n' "$manifest" "$package" >&2
+                return 1
+            }
             packages+=("$package")
         done < "$manifest"
     done
 
-    ((${#packages[@]})) && sudo pacman -Syu --needed "${packages[@]}"
+    if ((${#packages[@]})); then
+        sudo pacman -Syu --needed -- "${packages[@]}"
+    fi
 }
 
-if $install_packages; then
+if $install_packages || $enable_services; then
     if [[ ! -f /etc/arch-release ]]; then
         printf 'This bootstrap supports Arch Linux only.\n' >&2
         exit 1
     fi
+fi
 
+if $install_packages; then
     install_manifests "$repo_dir/arch/packages/common.txt" "$host_dir/arch/packages.txt"
+    uv tool install --upgrade jupytext
 fi
 
 if $install_stow; then
@@ -93,14 +109,23 @@ if $install_stow; then
         [[ -d "$path" ]] && packages+=("$(basename "$path")")
     done
 
-    # --restow updates existing links but refuses to overwrite real files.
-    stow --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
-    stow --dir="$host_dir/arch" --target="$HOME" --restow stow
+    # Keep directories real so the host-specific file can coexist with shared links.
+    stow --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
+
+    niri_dir="$HOME/.config/niri"
+    host_link="$niri_dir/host.kdl"
+    mkdir -p "$niri_dir"
+    if [[ -e "$host_link" && ! -L "$host_link" ]]; then
+        printf 'Refusing to replace non-symlink host configuration: %s\n' "$host_link" >&2
+        exit 1
+    fi
+    ln -sfn "$host_dir/arch/stow/.config/niri/host.kdl" "$host_link"
+    systemctl --user enable polkit-kde-agent.service
 fi
 
 if $enable_services; then
     sudo systemctl enable NetworkManager.service
     sudo systemctl enable bluetooth.service
-    sudo systemctl disable getty@tty2.service
     sudo systemctl enable ly@tty2.service
+    sudo systemctl disable getty@tty2.service
 fi

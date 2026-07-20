@@ -44,6 +44,10 @@ julia
 zed
 neovim
 nodejs-lts-krypton
+imagemagick
+python-pynvim
+python-jupyter-client
+uv
 fd
 ripgrep
 lazygit

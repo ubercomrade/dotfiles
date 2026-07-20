@@ -1,27 +1,27 @@
-{ pkgs, name, ... }:
+{ pkgs, hostName, username, ... }:
 let
   shared = ../../shared/stow;
-  host = ../../hosts + "/${name}/arch/stow";
+  host = ../../hosts + "/${hostName}/arch/stow";
 in
 {
-  home.username = "anton";
-  home.homeDirectory = "/home/anton";
+  home.username = username;
+  home.homeDirectory = "/home/${username}";
   home.stateVersion = "26.05";
 
   home.packages = with pkgs; [
     quickshell
     kitty
-    dolphin
+    kdePackages.dolphin
     firefox
     libreoffice-fresh
-    kate
-    okular
-    gwenview
-    ark
-    kcalc
-    pavucontrol-qt
-    breeze-icons
-    qt6ct
+    kdePackages.kate
+    kdePackages.okular
+    kdePackages.gwenview
+    kdePackages.ark
+    kdePackages.kcalc
+    pavucontrol
+    kdePackages.breeze-icons
+    qt6Packages.qt6ct
     bluez
     brightnessctl
     playerctl
@@ -38,6 +38,12 @@ in
     zed-editor
     neovim
     nodejs_24
+    imagemagick
+    (python3.withPackages (pythonPackages: with pythonPackages; [
+      pynvim
+      jupyter-client
+      jupytext
+    ]))
     git
     ripgrep
     fd
@@ -64,7 +70,7 @@ in
       After = [ "graphical-session.target" ];
       PartOf = [ "graphical-session.target" ];
     };
-    Service.ExecStart = "${pkgs.polkit-kde-agent}/lib/polkit-kde-authentication-agent-1";
+    Service.ExecStart = "${pkgs.kdePackages.polkit-kde-agent-1}/libexec/polkit-kde-authentication-agent-1";
     Install.WantedBy = [ "graphical-session.target" ];
   };
 

@@ -32,6 +32,7 @@ screenshot-path "~/Pictures/Screenshots/Screenshot %Y-%m-%d %H-%M-%S.png"
 
 spawn-at-startup "qs" "-c" "minimal"
 spawn-at-startup "mako"
+spawn-at-startup "swayidle" "-w" "timeout" "600" "swaylock -f" "before-sleep" "swaylock -f"
 
 binds {
     Mod+D repeat=false { spawn "qs" "-c" "minimal" "ipc" "call" "launcher" "toggle"; }
@@ -40,7 +41,7 @@ binds {
     Mod+W { spawn "firefox"; }
     Mod+Q { close-window; }
     Mod+Shift+E { quit; }
-    Mod+L { spawn "loginctl" "lock-session"; }
+    Mod+L allow-when-locked=true { spawn "swaylock" "-f"; }
 
     Mod+Left { focus-column-left; }
     Mod+Right { focus-column-right; }

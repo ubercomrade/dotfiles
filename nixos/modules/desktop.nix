@@ -4,6 +4,7 @@
   nixpkgs.config.allowUnfree = true;
 
   programs.niri.enable = true;
+  programs.niri.useNautilus = false;
   services.displayManager.ly.enable = true;
 
   networking.networkmanager.enable = true;
@@ -28,6 +29,9 @@
     ];
   };
 
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
-  environment.systemPackages = [ pkgs.polkit-kde-agent ];
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";
+    QT_QPA_PLATFORMTHEME = "qt6ct";
+  };
+  environment.systemPackages = [ pkgs.kdePackages.polkit-kde-agent-1 ];
 }

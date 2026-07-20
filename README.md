@@ -18,7 +18,7 @@ Both targets need an active internet connection. Disk partitioning, encryption, 
 
 ### Arch Linux
 
-Install Arch base with systemd first. Create the regular user that will own the dotfiles, grant it `sudo` access through the `wheel` group, and connect to the network. The Arch installer configures the graphical stack, NetworkManager, Bluetooth, and Ly; it does not create users or configure a bootloader.
+Install Arch base with systemd first. Create the regular user that will own the dotfiles, grant it `sudo` access through the `wheel` group, and connect to the network. The Arch installer installs the graphical stack and can configure NetworkManager, Bluetooth, and Ly with `--enable-services`; it does not create users or configure a bootloader.
 
 ### NixOS
 
@@ -69,14 +69,13 @@ git clone https://github.com/ubercomrade/dotfiles.git
 cd dotfiles
 nixos-generate-config --show-hardware-config > hosts/laptop/nixos/hardware-configuration.nix
 git add hosts/laptop/nixos/hardware-configuration.nix
-nix flake lock path:.
 ./apply.sh --os nixos --host laptop
 sudo passwd anton
 ```
 
 The NixOS target declaratively enables niri, Ly, NetworkManager, Bluetooth, PipeWire/WirePlumber, portals, polkit, and the user environment managed by Home Manager.
 
-The host name, user name, locale, disk layout, and hardware settings remain deliberately host-specific. Change `hosts/laptop/nixos/default.nix` before the first rebuild if `laptop` or `anton` are not correct. The laptop host assumes UEFI, `Asia/Novosibirsk`, `en_US.UTF-8`, and an US console keymap. Generate and commit `hardware-configuration.nix`; it contains no secrets and is necessary to reproduce the host.
+The host name, locale, disk layout, and hardware settings remain deliberately host-specific. Change `hosts/laptop/nixos/default.nix` before the first rebuild when those settings are not correct. The user name is set once in the host entry in `flake.nix`; Home Manager and the system user both receive it. The laptop host assumes UEFI, `Asia/Novosibirsk`, `en_US.UTF-8`, and an US console keymap. Generate and commit `hardware-configuration.nix`; it contains no secrets and is necessary to reproduce the host. The repository's tracked `flake.lock` pins Nixpkgs and Home Manager.
 
 ## Hardware profiles
 
@@ -92,7 +91,7 @@ The `laptop` profile adds its known niri outputs and NixOS hardware scan. To cre
 cp -R hosts/_template hosts/vm
 ```
 
-Update `hosts/vm/arch/stow/.config/niri/host.kdl`. For NixOS, generate `hosts/vm/nixos/hardware-configuration.nix`, update `hosts/vm/nixos/default.nix`, then add `vm` to the root `flake.nix`. Keep machine profiles in Git; do not put passwords, Wi-Fi secrets, private keys, or API keys in them.
+Update `hosts/vm/arch/stow/.config/niri/host.kdl`. For NixOS, generate `hosts/vm/nixos/hardware-configuration.nix`, update `hosts/vm/nixos/default.nix`, then add a `mkHost` entry with its name, user, system architecture, and module to the root `flake.nix`. Keep `system.stateVersion` and `home.stateVersion` at the original installation version when adapting an existing system. Keep machine profiles in Git; do not put passwords, Wi-Fi secrets, private keys, or API keys in them.
 
 ## Main bindings
 
@@ -113,7 +112,7 @@ Update `hosts/vm/arch/stow/.config/niri/host.kdl`. For NixOS, generate `hosts/vm
 
 The shared niri configuration is output-independent. The current laptop outputs `eDP-1` and `HDMI-A-1` live in `hosts/laptop/arch/stow/.config/niri/host.kdl`. Inspect another machine with `niri msg outputs` and put its rules in its own host profile.
 
-niri disables the laptop panel when the lid closes while an external monitor remains active. The GTK and GNOME portal backends are technical dependencies: GTK is the fallback portal and GNOME supplies screencasting. The configuration routes file chooser requests through GTK, so Nautilus is not required.
+The GTK and GNOME portal backends are technical dependencies: GTK is the fallback portal and GNOME supplies screencasting. The configuration routes file chooser requests through GTK and disables Niri's optional Nautilus integration.
 
 ## Validate
 
@@ -121,7 +120,7 @@ niri disables the laptop panel when the lid closes while an external monitor rem
 ./scripts/check.sh
 ```
 
-The script validates shell syntax and simulates an Arch Stow deployment in a temporary directory when Stow is available. On NixOS, additionally run:
+The script validates shell, JSON, Lua, QML, and Niri configuration when their tools are available, and performs an Arch Stow deployment in a temporary directory. It explicitly reports checks skipped because a tool or hardware configuration is unavailable. On NixOS, additionally run:
 
 ```sh
 nix flake check .

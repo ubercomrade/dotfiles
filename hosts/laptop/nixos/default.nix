@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib, username, ... }:
 {
   imports = [ ../../../nixos/modules/desktop.nix ]
     ++ lib.optional (builtins.pathExists ./hardware-configuration.nix) ./hardware-configuration.nix;
@@ -19,7 +19,7 @@
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
 
-  users.users.anton = {
+  users.users.${username} = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
   };

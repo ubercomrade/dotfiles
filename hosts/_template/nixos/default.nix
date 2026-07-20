@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib, username, ... }:
 {
   imports = [ ../../../nixos/modules/desktop.nix ]
     ++ lib.optional (builtins.pathExists ./hardware-configuration.nix) ./hardware-configuration.nix;
@@ -11,5 +11,10 @@
   ];
 
   networking.hostName = "replace-me";
+  users.users.${username} = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "networkmanager" "audio" "video" ];
+  };
+  users.mutableUsers = true;
   system.stateVersion = "26.05";
 }

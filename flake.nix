@@ -11,24 +11,29 @@
 
   outputs = inputs@{ nixpkgs, home-manager, ... }:
   let
-    mkHost = name: module: nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      specialArgs = { inherit inputs name; };
+    mkHost = { name, module, system ? "x86_64-linux", username ? "anton" }:
+    nixpkgs.lib.nixosSystem {
+      inherit system;
+      specialArgs = { inherit inputs username; hostName = name; };
       modules = [
         module
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs name; };
-          home-manager.users.anton = import ./nixos/modules/home.nix;
+          home-manager.extraSpecialArgs = { inherit inputs username; hostName = name; };
+          home-manager.users.${username} = import ./nixos/modules/home.nix;
         }
       ];
     };
   in
   {
     nixosConfigurations = {
-      laptop = mkHost "laptop" ./hosts/laptop/nixos/default.nix;
+      laptop = mkHost {
+        name = "laptop";
+        username = "anton";
+        module = ./hosts/laptop/nixos/default.nix;
+      };
     };
   };
 }
