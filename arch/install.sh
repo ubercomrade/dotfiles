@@ -9,20 +9,22 @@ install_niri_packages=false
 install_stow=false
 install_niri_config=false
 enable_services=false
+enable_ly=false
 host="generic"
 
 usage() {
     cat <<'EOF'
-Usage: ./install.sh [--host NAME] [--niri-packages] [--packages] [--niri-config] [--stow] [--enable-services]
+Usage: ./install.sh [--host NAME] [--niri-packages] [--packages] [--niri-config] [--stow] [--enable-services] [--enable-ly]
 
-At least one action flag is required. Existing files are never overwritten.
+At least one action flag is required. Existing regular files and unmanaged host links are never overwritten.
 
   --host NAME        Apply a hardware profile; defaults to generic.
   --niri-packages    Install only packages required by the Niri session.
   --packages         Install common and host-specific package manifests.
   --niri-config      Deploy only the Niri session configuration.
   --stow             Symlink all stow packages into $HOME.
-  --enable-services  Enable NetworkManager, Bluetooth, and Ly if needed.
+  --enable-services  Enable NetworkManager and Bluetooth.
+  --enable-ly        Enable Ly on tty2 when no display manager is active.
   --help             Show this help.
 
 --enable-services changes system services and is intentionally opt-in.
@@ -41,6 +43,7 @@ while (($#)); do
         --niri-config) install_niri_config=true ;;
         --stow) install_stow=true ;;
         --enable-services) enable_services=true ;;
+        --enable-ly) enable_ly=true ;;
         --help) usage; exit 0 ;;
         *)
             printf 'Unknown option: %s\n' "$1" >&2
@@ -51,7 +54,7 @@ while (($#)); do
     shift
 done
 
-if ! $install_niri_packages && ! $install_packages && ! $install_niri_config && ! $install_stow && ! $enable_services; then
+if ! $install_niri_packages && ! $install_packages && ! $install_niri_config && ! $install_stow && ! $enable_services && ! $enable_ly; then
     usage >&2
     exit 2
 fi
@@ -91,7 +94,7 @@ install_manifests() {
     fi
 }
 
-if $install_niri_packages || $install_packages || $enable_services; then
+if $install_niri_packages || $install_packages || $enable_services || $enable_ly; then
     if [[ ! -f /etc/arch-release ]]; then
         printf 'This bootstrap supports Arch Linux only.\n' >&2
         exit 1
@@ -152,6 +155,19 @@ fi
 if $enable_services; then
     sudo systemctl enable NetworkManager.service
     sudo systemctl enable bluetooth.service
+fi
+
+if $enable_ly; then
+    for display_manager in display-manager.service sddm.service gdm.service lightdm.service greetd.service; do
+        display_manager_state=$(systemctl is-enabled "$display_manager" 2>/dev/null || true)
+        display_manager_active=$(systemctl is-active "$display_manager" 2>/dev/null || true)
+        case "$display_manager_state:$display_manager_active" in
+            enabled:*|enabled-runtime:*|linked:*|linked-runtime:*|*:active|*:activating|*:reloading)
+                printf 'Refusing to enable Ly while %s is enabled or active. Disable the existing display manager first.\n' "$display_manager" >&2
+                exit 1
+                ;;
+        esac
+    done
 
     existing_ly_unit=""
     for ly_template in ly ly-kmsconvt; do

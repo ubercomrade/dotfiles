@@ -65,7 +65,7 @@ Portal and notification tests are most reliable after logging out of every other
 
 ## Display managers
 
-When Ly is already active or enabled as either `ly@ttyN` or `ly-kmsconvt@ttyN`, `--enable-services` preserves that instance. If no Ly instance exists, the action enables `ly@tty2` and disables `getty@tty2`.
+`--enable-services` manages only NetworkManager and Bluetooth. Enable Ly separately with `--enable-ly`; it refuses to proceed while `display-manager.service`, SDDM, GDM, LightDM, or greetd is active or enabled. When no display manager or Ly instance exists, it enables `ly@tty2` and disables `getty@tty2`.
 
 Ly can remember the last selected session when its `save` setting is enabled. This is display-manager configuration, not shell startup; Fish, Zsh, and Bash files do not need to launch Niri.
 

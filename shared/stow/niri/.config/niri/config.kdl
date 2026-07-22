@@ -3,7 +3,7 @@ input {
     keyboard {
         xkb {
             layout "us,ru"
-            options "grp:ctrl_space_toggle"
+            options "grp:alt_shift_toggle"
         }
         track-layout "global"
     }
@@ -30,6 +30,7 @@ layout {
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot %Y-%m-%d %H-%M-%S.png"
 
+spawn-at-startup "sh" "-c" "mkdir -p \"$HOME/Pictures/Screenshots\""
 spawn-at-startup "qs" "-c" "minimal"
 spawn-at-startup "mako"
 spawn-at-startup "swayidle" "-w" "timeout" "600" "swaylock -f" "before-sleep" "swaylock -f"

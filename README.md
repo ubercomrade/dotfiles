@@ -12,7 +12,7 @@ This is a personal configuration intended to be reviewed and adapted before use.
 - NixOS 26.05 with flakes and Home Manager.
 - `x86_64-linux` by default; another Nix system can be set per host in `flake.nix`.
 
-Disk partitioning, encryption, GPU drivers, Secure Boot, Arch bootloader setup, user creation, secrets, and interactive shell configuration are outside the repository's scope.
+Disk partitioning, encryption, GPU drivers, Secure Boot, Arch bootloader setup, secrets, and interactive shell configuration are outside the repository's scope. The NixOS host modules declare a mutable user but do not set its password; run `passwd <username>` before logging out.
 
 ## Repository layout
 
@@ -28,7 +28,7 @@ Disk partitioning, encryption, GPU drivers, Secure Boot, Arch bootloader setup, 
 ## Before you run
 
 1. Review the package manifests, Stow packages, host profile, and scripts before granting `sudo` access.
-2. Back up any paths under `$HOME` that this repository will manage.
+2. Back up any paths under `$HOME` that this repository will manage. Existing regular files and unmanaged `host.kdl` links are refused, but repository-managed links may be updated.
 3. Clone the repository to a permanent location. Stow and `host.kdl` use links into the checkout; moving or deleting it breaks deployed configuration.
 4. Use `generic` on Arch until a host-specific display profile has been reviewed. For NixOS, create a host from `_template` instead of using the included `laptop` profile.
 
@@ -71,7 +71,13 @@ System services are a separate opt-in:
 ./apply.sh --os arch --host generic --enable-services
 ```
 
-This enables NetworkManager and Bluetooth. It preserves an active or enabled Ly instance; when none exists, it enables Ly on tty2 and disables `getty@tty2`.
+This enables NetworkManager and Bluetooth. Ly is deliberately separate because it conflicts with an existing display manager:
+
+```sh
+./apply.sh --os arch --host generic --enable-ly
+```
+
+`--enable-ly` refuses to proceed when `display-manager.service` is active or enabled. When safe, it enables Ly on tty2 and disables `getty@tty2`.
 
 See [`docs/migration-existing-desktop.md`](docs/migration-existing-desktop.md) before applying the repository over an existing desktop configuration.
 
@@ -114,7 +120,8 @@ Keep `system.stateVersion` and `home.stateVersion` at the release used for the o
 | `--packages` | Runs `pacman -Syu --needed` for the complete manifests and installs Jupytext with `uv` when absent |
 | `--niri-config` | Stows Niri session packages, links the selected host profile, and enables the user Polkit service |
 | `--stow` | Stows every package under `shared/stow/`, links the host profile, and enables the user Polkit service |
-| `--enable-services` | Enables NetworkManager, Bluetooth, and Ly when no Ly instance exists |
+| `--enable-services` | Enables NetworkManager and Bluetooth |
+| `--enable-ly` | Enables Ly on tty2 only when no display manager or Ly instance is active |
 | NixOS apply | Runs privileged `nixos-rebuild switch` for the selected flake output |
 
 Action flags are required. Running the Arch installer without an action prints usage and changes nothing. Pacman and Nix commands access the network; the first Neovim start can also download plugins pinned by `lazy-lock.json`.
@@ -136,7 +143,7 @@ The complete Stow deployment manages these packages:
 | `nvim` | Neovim and LazyVim configuration |
 | `zed` | Zed settings, keymap, and snippets |
 
-The limited `--niri-config` action deploys only the first five packages. Shared settings include US/RU keyboard layouts, natural touchpad scrolling, Noto fonts, Kitty-oriented notebook rendering, and Python-focused editor defaults.
+The limited `--niri-config` action deploys only the first five packages. Shared settings include US/RU keyboard layouts switched with Alt+Shift, natural touchpad scrolling, Noto fonts, Kitty-oriented notebook rendering, and Python-focused editor defaults.
 
 ## Host customization
 
@@ -155,6 +162,8 @@ Run the available repository checks with:
 ```
 
 The script reports tools and checks that were skipped. `Available repository checks passed` means only the checks available on that machine succeeded; it does not imply that NixOS, Niri, QML, JSON, Lua, and Stow were all evaluated.
+
+Use `CI=1 ./scripts/check.sh` when all required tools are installed to reject skipped validation. The flake also exposes a synthetic `test` configuration for evaluating shared NixOS and Home Manager modules without personal hardware data.
 
 Before a NixOS switch, also build the selected host explicitly as shown in the NixOS quick start.
 

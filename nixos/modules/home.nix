@@ -21,6 +21,7 @@ in
     kdePackages.ark
     kdePackages.kcalc
     pavucontrol
+    kdePackages.breeze
     kdePackages.breeze-icons
     qt6Packages.qt6ct
     bluez
@@ -35,6 +36,7 @@ in
     swayidle
     xdg-user-dirs
     pixi
+    uv
     julia
     zed-editor
     neovim
@@ -49,6 +51,8 @@ in
     ripgrep
     fd
     lazygit
+    pyright
+    ruff
   ];
 
   xdg.configFile = {
@@ -71,7 +75,10 @@ in
       After = [ "graphical-session.target" ];
       PartOf = [ "graphical-session.target" ];
     };
-    Service.ExecStart = "${pkgs.kdePackages.polkit-kde-agent-1}/libexec/polkit-kde-authentication-agent-1";
+    Service = {
+      ExecStart = "${pkgs.kdePackages.polkit-kde-agent-1}/libexec/polkit-kde-authentication-agent-1";
+      Restart = "on-failure";
+    };
     Install.WantedBy = [ "graphical-session.target" ];
   };
 

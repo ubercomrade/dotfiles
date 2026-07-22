@@ -13,7 +13,7 @@ okular
 gwenview
 ark
 kcalc
-pavucontrol-qt
+pavucontrol
 breeze
 breeze-icons
 qt6ct

@@ -1,5 +1,15 @@
 return {
   {
+    "lewis6991/gitsigns.nvim",
+    opts = {
+      on_attach = function(bufnr)
+        if vim.bo[bufnr].filetype == "ipynb" then
+          return false
+        end
+      end,
+    },
+  },
+  {
     "GCBallesteros/NotebookNavigator.nvim",
     event = "VeryLazy",
     dependencies = { "nvim-mini/mini.comment", "benlubas/molten-nvim" },

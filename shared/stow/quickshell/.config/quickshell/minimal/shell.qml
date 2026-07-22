@@ -12,6 +12,29 @@ Scope {
     property string networkName: "offline"
     property string keyboardLayout: "us"
     property var workspaces: []
+    property var workspaceIndices: {
+        const indices = new Set(workspaces.map(workspace => workspace.idx))
+        for (let index = 1; index <= 9; index++)
+            indices.add(index)
+        return Array.from(indices).sort((left, right) => left - right)
+    }
+    property var filteredApplications: DesktopEntries.applications.values.filter(entry =>
+        entry.name.toLowerCase().includes(query.text.toLowerCase()))
+
+    function launch(entry): void {
+        if (!entry)
+            return
+
+        if (entry.runInTerminal) {
+            Quickshell.execDetached({
+                command: ["kitty", "--"].concat(entry.command),
+                workingDirectory: entry.workingDirectory,
+            })
+        } else {
+            entry.execute()
+        }
+        launcherOpen = false
+    }
 
     IpcHandler {
         target: "launcher"
@@ -100,7 +123,7 @@ Scope {
                 spacing: 3
 
                 Repeater {
-                    model: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+                    model: root.workspaceIndices
 
                     delegate: Button {
                         required property int modelData
@@ -157,6 +180,7 @@ Scope {
         onVisibleChanged: {
             if (visible) {
                 query.text = ""
+                results.currentIndex = 0
                 query.forceActiveFocus()
             }
         }
@@ -180,32 +204,38 @@ Scope {
                     Layout.fillWidth: true
                     placeholderText: "Search applications..."
                     onAccepted: {
-                        for (const entry of DesktopEntries.applications.values) {
-                            if (entry.name.toLowerCase().includes(text.toLowerCase())) {
-                                entry.execute()
-                                root.launcherOpen = false
-                                return
-                            }
+                        root.launch(root.filteredApplications[results.currentIndex])
+                    }
+                    onTextChanged: results.currentIndex = 0
+                    Keys.onEscapePressed: root.launcherOpen = false
+                    Keys.onPressed: event => {
+                        if (event.key === Qt.Key_Down && results.count > 0) {
+                            results.currentIndex = Math.min(results.currentIndex + 1, results.count - 1)
+                            results.positionViewAtIndex(results.currentIndex, ListView.Contain)
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Up && results.count > 0) {
+                            results.currentIndex = Math.max(results.currentIndex - 1, 0)
+                            results.positionViewAtIndex(results.currentIndex, ListView.Contain)
+                            event.accepted = true
                         }
                     }
-                    Keys.onEscapePressed: root.launcherOpen = false
                 }
 
                 ListView {
+                    id: results
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    model: DesktopEntries.applications.values.filter(entry =>
-                        entry.name.toLowerCase().includes(query.text.toLowerCase()))
+                    model: root.filteredApplications
                     spacing: 4
 
                     delegate: Button {
                         required property var modelData
                         width: ListView.view.width
                         text: modelData.name
+                        highlighted: ListView.isCurrentItem
                         onClicked: {
-                            modelData.execute()
-                            root.launcherOpen = false
+                            root.launch(modelData)
                         }
                     }
                 }

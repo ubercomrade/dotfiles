@@ -4,6 +4,17 @@ set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 skipped=()
+strict=false
+[[ ${CI:-} == "1" || ${CI:-} == "true" ]] && strict=true
+
+require_or_skip() {
+    local name="$1"
+    if $strict; then
+        printf 'Required check unavailable: %s\n' "$name" >&2
+        exit 1
+    fi
+    skipped+=("$name")
+}
 
 bash -n "$repo_dir/apply.sh"
 bash -n "$repo_dir/install.sh"
@@ -17,7 +28,7 @@ if command -v jq >/dev/null; then
         jq empty "$file"
     done < <(find "$repo_dir/shared/stow/zed" "$repo_dir/shared/stow/nvim" -type f -name '*.json' -print0)
 else
-    skipped+=("JSON validation")
+    require_or_skip "JSON validation"
 fi
 
 if command -v luac >/dev/null; then
@@ -25,7 +36,7 @@ if command -v luac >/dev/null; then
         luac -p "$file"
     done < <(find "$repo_dir/shared/stow/nvim" -type f -name '*.lua' -print0)
 else
-    skipped+=("Lua validation")
+    require_or_skip "Lua validation"
 fi
 
 if command -v qmllint >/dev/null; then
@@ -34,10 +45,10 @@ if command -v qmllint >/dev/null; then
             printf '%s\n' "$qml_output" >&2
             exit 1
         fi
-        skipped+=("QML validation: qmllint could not initialize")
+        require_or_skip "QML validation: qmllint could not initialize"
     fi
 else
-    skipped+=("QML validation")
+    require_or_skip "QML validation"
 fi
 
 if command -v stow >/dev/null; then
@@ -66,6 +77,7 @@ if command -v stow >/dev/null; then
     mkdir -p "$mock_bin"
     printf '%s\n' '#!/usr/bin/env bash' '[[ -z "${MOCK_SYSTEMCTL_LOG:-}" ]] || printf "%s\\n" "$*" >> "$MOCK_SYSTEMCTL_LOG"' \
         'if [[ "$1" == "is-enabled" ]]; then' \
+        '    if [[ "${MOCK_DISPLAY_MANAGER_STATE:-none}" == "enabled" && "$2" == "sddm.service" ]]; then printf "enabled\\n"; exit 0; fi' \
         '    if [[ "${MOCK_LY_STATE:-existing}" == "existing" && "$2" == "ly@tty1.service" ]]; then printf "enabled\\n"; exit 0; fi' \
         '    if [[ "${MOCK_LY_STATE:-existing}" == "kms" && "$2" == "ly-kmsconvt@tty1.service" ]]; then printf "enabled\\n"; exit 0; fi' \
         '    printf "disabled\\n"; exit 1' \
@@ -103,7 +115,7 @@ if command -v stow >/dev/null; then
     if [[ -f /etc/arch-release ]]; then
         service_log="$target/systemctl.log"
         MOCK_SYSTEMCTL_LOG="$service_log" MOCK_LY_STATE=existing PATH="$mock_bin:$PATH" \
-            "$repo_dir/arch/install.sh" --host laptop --enable-services >/dev/null
+            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null
         if grep -q 'enable ly@tty2.service' "$service_log"; then
             printf 'Arch installer replaced an existing Ly service.\n' >&2
             exit 1
@@ -111,7 +123,7 @@ if command -v stow >/dev/null; then
 
         : > "$service_log"
         MOCK_SYSTEMCTL_LOG="$service_log" MOCK_LY_STATE=kms PATH="$mock_bin:$PATH" \
-            "$repo_dir/arch/install.sh" --host laptop --enable-services >/dev/null
+            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null
         if grep -q 'enable ly@tty2.service' "$service_log"; then
             printf 'Arch installer replaced an existing Ly kmsconvt service.\n' >&2
             exit 1
@@ -119,17 +131,37 @@ if command -v stow >/dev/null; then
 
         : > "$service_log"
         MOCK_SYSTEMCTL_LOG="$service_log" MOCK_LY_STATE=none PATH="$mock_bin:$PATH" \
-            "$repo_dir/arch/install.sh" --host laptop --enable-services >/dev/null
+            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null
         grep -q 'enable ly@tty2.service' "$service_log"
         grep -q 'disable getty@tty2.service' "$service_log"
+
+        if MOCK_DISPLAY_MANAGER_STATE=enabled PATH="$mock_bin:$PATH" \
+            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null 2>&1; then
+            printf 'Arch installer enabled Ly alongside an existing display manager.\n' >&2
+            exit 1
+        fi
     else
-        skipped+=("Arch service routing")
+        require_or_skip "Arch service routing"
     fi
 
-    command -v niri >/dev/null || skipped+=("Niri validation")
+    command -v niri >/dev/null || require_or_skip "Niri validation"
 else
-    skipped+=("Stow deployment")
-    skipped+=("Niri validation")
+    require_or_skip "Stow deployment"
+    require_or_skip "Niri validation"
+fi
+
+for manifest in "$repo_dir"/arch/packages/*.txt; do
+    duplicate_packages=$(sort "$manifest" | uniq -d)
+    if [[ -n "$duplicate_packages" ]]; then
+        printf 'Duplicate package entries in %s:\n%s\n' "$manifest" "$duplicate_packages" >&2
+        exit 1
+    fi
+done
+if missing_niri_packages=$(comm -23 <(sed '/^#/d;/^$/d' "$repo_dir/arch/packages/niri.txt" | sort) <(sed '/^#/d;/^$/d' "$repo_dir/arch/packages/common.txt" | sort)); then
+    if [[ -n "$missing_niri_packages" ]]; then
+        printf 'Niri packages missing from common manifest:\n%s\n' "$missing_niri_packages" >&2
+        exit 1
+    fi
 fi
 
 if command -v nix >/dev/null; then
@@ -144,6 +176,12 @@ if command -v nix >/dev/null; then
     for nix_host in "${nix_hosts[@]}"; do
         [[ -n "$nix_host" ]] || continue
         hardware_config="$repo_dir/hosts/$nix_host/nixos/hardware-configuration.nix"
+        if [[ "$nix_host" == "test" ]]; then
+            nix eval --raw \
+                "path:$repo_dir#nixosConfigurations.\"$nix_host\".config.system.build.toplevel.drvPath" >/dev/null
+            checked_nix_host=true
+            continue
+        fi
         if [[ ! -f "$hardware_config" ]]; then
             skipped+=("NixOS $nix_host: missing $hardware_config")
             missing_nix_hardware=true
@@ -165,7 +203,7 @@ if command -v nix >/dev/null; then
         skipped+=("NixOS: no evaluable configurations")
     fi
 else
-    skipped+=("NixOS: nix is unavailable")
+    require_or_skip "NixOS: nix is unavailable"
 fi
 
 if ((${#skipped[@]})); then

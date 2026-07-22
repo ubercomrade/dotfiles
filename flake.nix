@@ -38,6 +38,12 @@
         homeStateVersion = "26.05";
         module = ./hosts/laptop/nixos/default.nix;
       };
+      test = mkHost {
+        name = "test";
+        username = "test";
+        homeStateVersion = "26.05";
+        module = ./hosts/test/nixos/default.nix;
+      };
     };
   };
 }

@@ -1,4 +1,4 @@
-{ lib, username, ... }:
+{ lib, hostName, username, ... }:
 {
   imports = [ ../../../nixos/modules/desktop.nix ]
     ++ lib.optional (builtins.pathExists ./hardware-configuration.nix) ./hardware-configuration.nix;
@@ -10,7 +10,7 @@
     }
   ];
 
-  networking.hostName = "laptop";
+  networking.hostName = hostName;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
