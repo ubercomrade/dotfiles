@@ -19,7 +19,6 @@ require_or_skip() {
 bash -n "$repo_dir/apply.sh"
 bash -n "$repo_dir/install.sh"
 bash -n "$repo_dir/arch/install.sh"
-bash -n "$repo_dir/update-config.sh"
 
 [[ -f "$repo_dir/flake.lock" ]]
 [[ -f "$repo_dir/shared/stow/nvim/.config/nvim/lazy-lock.json" ]]
@@ -180,7 +179,6 @@ if [[ -f /etc/arch-release ]]; then
     "$repo_dir/apply.sh" plan niri | grep -q 'Niri session manifest'
     "$repo_dir/apply.sh" plan full generic | grep -q 'complete package manifests'
     "$repo_dir/apply.sh" plan services | grep -q 'NetworkManager and Bluetooth'
-    "$repo_dir/update-config.sh" generic | grep -q 'Stow every dotfile package'
     if "$repo_dir/apply.sh" </dev/null >/dev/null 2>&1; then
         printf 'Installer accepted a no-action noninteractive invocation.\n' >&2
         exit 1

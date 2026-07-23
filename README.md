@@ -68,15 +68,6 @@ Use explicit commands for repeatable or noninteractive deployment:
 ./apply.sh plan full laptop  # inspect without changing the system
 ```
 
-For configuration updates only, use the dedicated wrapper:
-
-```sh
-./update-config.sh        # generic host
-./update-config.sh laptop
-```
-
-It runs the same Stow conflict check and never installs packages or changes system services.
-
 System services remain separate opt-ins:
 
 ```sh
