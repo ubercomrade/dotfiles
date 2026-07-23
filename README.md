@@ -27,7 +27,7 @@ Disk partitioning, encryption, GPU drivers, Secure Boot, Arch bootloader setup, 
 
 ## Before you run
 
-1. Review the package manifests, Stow packages, host profile, and scripts before granting `sudo` access.
+1. Ensure `sudo` is installed and configured, then review the package manifests, Stow packages, host profile, and scripts before granting it access.
 2. Back up any paths under `$HOME` that this repository will manage. Existing regular files and unmanaged `host.kdl` links are refused, but repository-managed links may be updated.
 3. Clone the repository to a permanent location. Stow and `host.kdl` use links into the checkout; moving or deleting it breaks deployed configuration.
 4. Use `generic` on Arch until a host-specific display profile has been reviewed. For NixOS, create a host from `_template` instead of using the included `laptop` profile.
@@ -116,7 +116,7 @@ Keep `system.stateVersion` and `home.stateVersion` at the release used for the o
 | --- | --- |
 | `./apply.sh` | Starts the interactive installer on a TTY |
 | `full [HOST]` | Runs `pacman -Syu --needed` for complete manifests, installs Jupytext through `uv` when needed, and stows every package |
-| `niri [HOST]` | Runs `pacman -Syu --needed` for the Niri manifest and deploys the Niri session configuration |
+| `niri [HOST]` | Runs `pacman -Syu --needed` for the Niri manifest, deploys the session configuration, and enables the Quickshell and clipboard-history user services |
 | `config [HOST]` | Stows every package without installing packages |
 | `services` | Enables NetworkManager and Bluetooth |
 | `ly` | Enables Ly on tty2 only when no display manager or Ly instance is active |
@@ -143,9 +143,9 @@ The complete Stow deployment manages these packages:
 | `kitty` | Kitty configuration |
 | `mime` | Default application associations |
 | `nvim` | Neovim and LazyVim configuration |
-| `zed` | Zed settings, keymap, and snippets |
+| `systemd` | Restartable Quickshell user service |
 
-The `niri` preset deploys the Niri session, Quickshell, Mako, GTK, and portal configuration. Quickshell provides a focused-output launcher on `Super+D`, Settings Center on `Super+,`, system monitoring on `Super+Shift+M`, a shortcut overlay on `Super+Shift+/`, layout OSD, and the Polkit authentication agent without a top bar. The launcher provides application search, shell commands, clipboard history, Wi-Fi, and Bluetooth controls.
+The `niri` preset deploys the Niri session, Quickshell, Mako, GTK, and portal configuration. Quickshell provides a focused-output launcher on `Super+D`, system monitoring on `Super+Shift+M`, a shortcut overlay on `Super+Shift+/`, layout OSD, and the Polkit authentication agent without a top bar. The launcher provides application search, shell commands, clipboard history, Wi-Fi and Bluetooth controls, battery status, and session power actions.
 
 ## Host customization
 
@@ -179,10 +179,11 @@ host_target=$(readlink -f -- "$host_link" 2>/dev/null || true)
 case "$host_target" in
   "$PWD"/hosts/*/arch/stow/.config/niri/host.kdl) rm -f "$host_link" ;;
 esac
+systemctl --user disable --now quickshell.service cliphist.service
 stow --delete --no-folding \
   --dir="$PWD/shared/stow" \
   --target="$HOME" \
-  niri quickshell mako gtk portal
+  niri quickshell mako gtk portal systemd
 ```
 
 The `host.kdl` link is removed only when it belongs to this checkout. The Stow command removes all links for the selected packages from this checkout. Stow removal does not uninstall Pacman packages or remove tools installed by `uv`.

@@ -35,8 +35,6 @@ QtObject {
     readonly property int iconButtonSize: Math.round(44 * scale)
     readonly property int launcherWidth: Math.round(760 * scale)
     readonly property int launcherHeight: Math.round(600 * scale)
-    readonly property int settingsWidth: Math.round(1060 * scale)
-    readonly property int settingsHeight: Math.round(720 * scale)
     readonly property int overlayWidth: Math.round(900 * scale)
     readonly property int overlayHeight: Math.round(650 * scale)
     readonly property string fontFamily: "Noto Sans"

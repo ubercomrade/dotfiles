@@ -9,8 +9,6 @@ Launcher 1.0 Launcher.qml
 ModalWindow 1.0 ModalWindow.qml
 MonitorLayer 1.0 MonitorLayer.qml
 PolkitWindow 1.0 PolkitWindow.qml
-SettingRow 1.0 SettingRow.qml
-SettingsWindow 1.0 SettingsWindow.qml
 ShellButton 1.0 ShellButton.qml
 ShellIcon 1.0 ShellIcon.qml
 ShellSlider 1.0 ShellSlider.qml

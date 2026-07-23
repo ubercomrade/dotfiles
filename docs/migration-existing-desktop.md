@@ -36,7 +36,7 @@ Use `generic` until a host-specific output file has been checked:
 niri validate --config "$HOME/.config/niri/config.kdl"
 ```
 
-The package action performs a full Arch system upgrade with `pacman -Syu`, then installs missing Niri runtime packages. The config action does not manage Hyprland, Sway, Kitty, Neovim, Zed, MIME, or other application configuration outside the limited Niri profile.
+The package action performs a full Arch system upgrade with `pacman -Syu`, then installs missing Niri runtime packages. The config action does not manage Hyprland, Sway, Kitty, Neovim, MIME, or other application configuration outside the limited Niri profile.
 
 The limited deployment adds `~/.config/quickshell/minimal` beside other Quickshell profiles. It does not remove them.
 
@@ -49,7 +49,6 @@ Check at least:
 - internal and external outputs;
 - `Ctrl+Space` keyboard-layout switching and configured bindings;
 - `Super+D` launcher modes for applications, commands, and clipboard history;
-- `Super+,` Settings Center and its Network, Bluetooth, Audio, and Display pages;
 - `Super+Shift+M` desktop system monitor;
 - `Super+Shift+/` shortcut overlay and Escape dismissal;
 - `Super+L` locking and unlock recovery;
@@ -75,7 +74,7 @@ After the Niri-only setup is stable, preview the remaining Stow packages before 
 stow --simulate --no-folding \
   --dir="$PWD/shared/stow" \
   --target="$HOME" \
-  gtk kitty mako mime niri nvim portal quickshell zed
+  gtk kitty mako mime niri nvim portal quickshell systemd
 ```
 
 Then explicitly opt in:

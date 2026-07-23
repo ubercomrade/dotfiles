@@ -31,7 +31,7 @@ PanelWindow {
         anchors.fill: parent
         active: window.visible
         focus: active
-        sourceComponent: shell.modal === "launcher" ? launcherComponent : shell.modal === "shortcuts" ? shortcutsComponent : shell.modal === "settings" ? settingsComponent : monitorComponent
+        sourceComponent: shell.modal === "launcher" ? launcherComponent : shell.modal === "shortcuts" ? shortcutsComponent : monitorComponent
     }
 
     Component {
@@ -41,10 +41,6 @@ PanelWindow {
     Component {
         id: shortcutsComponent
         ShortcutOverlay { shell: window.shell }
-    }
-    Component {
-        id: settingsComponent
-        SettingsWindow { shell: window.shell }
     }
     Component {
         id: monitorComponent

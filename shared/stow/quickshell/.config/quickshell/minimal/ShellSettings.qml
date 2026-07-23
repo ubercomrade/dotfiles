@@ -14,7 +14,6 @@ QtObject {
     property bool monitorClickThrough: false
     property int monitorRightMargin: 24
     property int monitorBottomMargin: 24
-    property string settingsSection: "network"
     property bool loading: true
 
     readonly property color accentColor: {
@@ -39,7 +38,6 @@ QtObject {
             monitorClickThrough = data.monitorClickThrough ?? monitorClickThrough
             monitorRightMargin = data.monitorRightMargin ?? monitorRightMargin
             monitorBottomMargin = data.monitorBottomMargin ?? monitorBottomMargin
-            settingsSection = data.settingsSection ?? settingsSection
         } catch (_) {}
         loading = false
         if (migrated)
@@ -60,8 +58,7 @@ QtObject {
             monitorVisible,
             monitorClickThrough,
             monitorRightMargin,
-            monitorBottomMargin,
-            settingsSection
+            monitorBottomMargin
         }, null, 2))
     }
 
@@ -72,7 +69,6 @@ QtObject {
     onMonitorClickThroughChanged: scheduleSave()
     onMonitorRightMarginChanged: scheduleSave()
     onMonitorBottomMarginChanged: scheduleSave()
-    onSettingsSectionChanged: scheduleSave()
 
     property Timer saveTimer: Timer {
         interval: 180

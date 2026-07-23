@@ -35,4 +35,5 @@ gnome-keyring
 xdg-user-dirs
 noto-fonts
 ttf-material-symbols-variable
+adwaita-icon-theme
 dgop

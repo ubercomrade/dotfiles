@@ -26,7 +26,7 @@ bash -n "$repo_dir/arch/install.sh"
 if command -v jq >/dev/null; then
     while IFS= read -r -d '' file; do
         jq empty "$file"
-    done < <(find "$repo_dir/shared/stow/zed" "$repo_dir/shared/stow/nvim" -type f -name '*.json' -print0)
+    done < <(find "$repo_dir/shared/stow/nvim" -type f -name '*.json' -print0)
 else
     require_or_skip "JSON validation"
 fi
@@ -39,8 +39,14 @@ else
     require_or_skip "Lua validation"
 fi
 
-if command -v qmllint >/dev/null; then
-    if ! qml_output=$(qmllint "$repo_dir"/shared/stow/quickshell/.config/quickshell/minimal/*.qml 2>&1); then
+qmllint_bin=""
+if [[ -x /usr/lib/qt6/bin/qmllint ]]; then
+    qmllint_bin=/usr/lib/qt6/bin/qmllint
+elif command -v qmllint >/dev/null; then
+    qmllint_bin=$(command -v qmllint)
+fi
+if [[ -n "$qmllint_bin" ]]; then
+    if ! qml_output=$("$qmllint_bin" "$repo_dir"/shared/stow/quickshell/.config/quickshell/minimal/*.qml 2>&1); then
         if [[ -n "$qml_output" ]]; then
             printf '%s\n' "$qml_output" >&2
             exit 1
@@ -53,7 +59,7 @@ fi
 
 grep -q 'target: "launcher"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'target: "shortcuts"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-grep -q 'target: "settings"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+! grep -q 'target: "settings"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'target: "monitor"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'event-stream' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'LayoutOsd' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
@@ -62,11 +68,13 @@ grep -q 'Material Symbols Rounded' "$repo_dir/shared/stow/quickshell/.config/qui
 grep -q 'dgop.*meta' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/MetricsService.qml"
 grep -q 'Quickshell.Networking' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
 grep -q 'Quickshell.Bluetooth' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
+grep -q '^Restart=on-failure$' "$repo_dir/shared/stow/systemd/.config/systemd/user/quickshell.service"
+! grep -q 'spawn-at-startup "qs"' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'skip-at-startup' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 ! grep -q 'Bar {' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'Ctrl+Space.*switch-layout' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'Mod+Shift+Slash.*shortcuts' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
-grep -q 'Mod+Comma.*settings' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
+! grep -q 'Mod+Comma.*settings' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'Mod+Shift+M.*monitor' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q '^dgop$' "$repo_dir/arch/packages/niri.txt"
 grep -q '^ttf-material-symbols-variable$' "$repo_dir/arch/packages/niri.txt"
@@ -118,6 +126,7 @@ if command -v stow >/dev/null; then
     [[ -f "$migration_target/.config/quickshell/ii/shell.qml" ]]
     [[ -L "$migration_target/.config/niri/config.kdl" ]]
     [[ -L "$migration_target/.config/niri/host.kdl" ]]
+    [[ -L "$migration_target/.config/systemd/user/quickshell.service" ]]
 
     if PATH="$mock_bin:$PATH" HOME="$migration_target" \
         "$repo_dir/arch/install.sh" laptop >/dev/null 2>&1; then

@@ -5,6 +5,7 @@
 
   programs.niri.enable = true;
   programs.niri.useNautilus = false;
+  programs.dconf.enable = true;
   services.displayManager.ly.enable = true;
 
   networking.networkmanager.enable = true;

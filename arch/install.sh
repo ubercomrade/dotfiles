@@ -156,7 +156,7 @@ if $install_full || $install_config; then
         [[ -d "$path" ]] && stow_packages+=("$(basename "$path")")
     done
 elif $install_niri; then
-    stow_packages=(niri quickshell mako gtk portal)
+    stow_packages=(niri quickshell mako gtk portal systemd)
 fi
 if ((${#stow_packages[@]})); then
     find_conflicting_targets "$stow_dir" "${stow_packages[@]}"
@@ -168,6 +168,10 @@ if $install_full || $install_niri || $enable_services || $enable_ly; then
         printf 'This bootstrap supports Arch Linux only.\n' >&2
         exit 1
     fi
+    command -v sudo >/dev/null || {
+        printf 'sudo is required for Arch package and system service changes.\n' >&2
+        exit 1
+    }
 fi
 
 if $install_full; then
@@ -227,6 +231,22 @@ if $install_full || $install_niri || $install_config; then
     stow --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
     mkdir -p "$niri_dir"
     ln -sfn "$host_dir/arch/stow/.config/niri/host.kdl" "$host_link"
+
+    user_services=(quickshell.service)
+    if systemctl --user cat cliphist.service >/dev/null 2>&1; then
+        user_services+=(cliphist.service)
+    fi
+
+    systemctl --user daemon-reload
+    systemctl --user enable "${user_services[@]}"
+    if systemctl --user is-active --quiet graphical-session.target; then
+        if command -v qs >/dev/null; then
+            systemctl --user restart quickshell.service
+        fi
+        if ((${#user_services[@]} > 1)) && command -v wl-paste >/dev/null && command -v cliphist >/dev/null; then
+            systemctl --user start cliphist.service
+        fi
+    fi
 fi
 
 if $enable_services; then

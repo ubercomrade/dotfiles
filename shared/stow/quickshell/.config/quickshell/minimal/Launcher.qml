@@ -28,6 +28,7 @@ Item {
     property var bluetoothDevices: bluetoothAdapter ? bluetoothAdapter.devices.values.slice().sort((left, right) => Number(right.connected) - Number(left.connected) || Number(right.paired) - Number(left.paired) || (left.name || left.deviceName).localeCompare(right.name || right.deviceName)) : []
     property int connectedBluetoothDevices: bluetoothDevices.filter(device => device.connected).length
     property string statusMessage: ""
+    property string pendingPowerAction: ""
 
     onVisibleEntriesChanged: currentIndex = Math.max(0, Math.min(currentIndex, visibleEntries.length - 1))
 
@@ -99,7 +100,9 @@ Item {
     }
 
     function handleEscape(): void {
-        if (shell.bluetoothAgent.promptType !== "none")
+        if (pendingPowerAction !== "")
+            pendingPowerAction = ""
+        else if (shell.bluetoothAgent.promptType !== "none")
             shell.bluetoothAgent.cancel()
         else if (section !== "main")
             closeSection()
@@ -115,6 +118,25 @@ Item {
             device.connect()
         else
             shell.bluetoothAgent.pair(device)
+    }
+
+    function requestPowerAction(action): void {
+        if (action === "suspend") {
+            Quickshell.execDetached(["systemctl", "suspend"])
+            shell.closeModal()
+        } else {
+            pendingPowerAction = action
+        }
+    }
+
+    function confirmPowerAction(): void {
+        const action = pendingPowerAction
+        pendingPowerAction = ""
+        if (action === "restart")
+            Quickshell.execDetached(["systemctl", "reboot"])
+        else if (action === "poweroff")
+            Quickshell.execDetached(["systemctl", "poweroff"])
+        shell.closeModal()
     }
 
     Process {
@@ -201,6 +223,84 @@ Item {
         }
     }
 
+    component BatteryIndicator: Rectangle {
+        id: batteryIndicator
+        readonly property real level: Math.max(0, Math.min(1, UPower.displayDevice.percentage))
+        readonly property color fillColor: level <= 0.15 ? Theme.danger : UPower.onBattery ? Theme.accent : Theme.success
+
+        Accessible.name: qsTr("Battery %1 percent").arg(Math.round(level * 100))
+        Layout.preferredWidth: 86 * Theme.scale
+        Layout.preferredHeight: 52 * Theme.scale
+        radius: Theme.radiusMedium
+        color: Theme.surfaceRaised
+
+        RowLayout {
+            anchors.centerIn: parent
+            spacing: Theme.unit * 2
+
+            Item {
+                Layout.preferredWidth: 38 * Theme.scale
+                Layout.preferredHeight: 22 * Theme.scale
+
+                Rectangle {
+                    id: batteryBody
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 34 * Theme.scale
+                    height: 22 * Theme.scale
+                    radius: 5 * Theme.scale
+                    color: "transparent"
+                    border.width: 2 * Theme.scale
+                    border.color: Theme.muted
+
+                    Rectangle {
+                        id: batteryFill
+                        x: 4 * Theme.scale
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - 8 * Theme.scale
+                        height: parent.height - 8 * Theme.scale
+                        radius: 2 * Theme.scale
+                        color: batteryIndicator.fillColor
+                        transform: Scale {
+                            origin.x: 0
+                            origin.y: batteryFill.height / 2
+                            xScale: batteryIndicator.level
+                            Behavior on xScale {
+                                NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic }
+                            }
+                        }
+                    }
+
+                    ShellIcon {
+                        anchors.centerIn: parent
+                        visible: !UPower.onBattery
+                        text: "bolt"
+                        color: Theme.accentForeground
+                        iconSize: 12
+                    }
+                }
+
+                Rectangle {
+                    anchors.left: batteryBody.right
+                    anchors.leftMargin: 2 * Theme.scale
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 3 * Theme.scale
+                    height: 9 * Theme.scale
+                    radius: 2 * Theme.scale
+                    color: Theme.muted
+                }
+            }
+
+            Label {
+                text: `${Math.round(batteryIndicator.level * 100)}%`
+                color: Theme.foreground
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontCaption
+                font.weight: Font.DemiBold
+            }
+        }
+    }
+
     Rectangle {
         id: panel
         anchors.centerIn: parent
@@ -241,30 +341,8 @@ Item {
                     }
                 }
 
-                Rectangle {
+                BatteryIndicator {
                     visible: UPower.displayDevice.isLaptopBattery
-                    Layout.preferredWidth: 78 * Theme.scale
-                    Layout.preferredHeight: 52 * Theme.scale
-                    radius: Theme.radiusMedium
-                    color: Theme.surfaceRaised
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 1
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: `${Math.round(UPower.displayDevice.percentage * 100)}%`
-                            color: Theme.foreground
-                            font.weight: Font.DemiBold
-                        }
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Battery"
-                            color: Theme.muted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontCaption
-                        }
-                    }
                 }
 
                 StatusButton {
@@ -281,10 +359,31 @@ Item {
                 }
                 ShellButton {
                     Layout.preferredWidth: Theme.iconButtonSize
-                    symbol: "settings"
+                    symbol: "bedtime"
                     text: ""
-                    accessibleName: qsTr("Open settings")
-                    onClicked: root.shell.openModal("settings")
+                    accessibleName: qsTr("Suspend")
+                    ToolTip.visible: hovered
+                    ToolTip.text: accessibleName
+                    onClicked: root.requestPowerAction("suspend")
+                }
+                ShellButton {
+                    Layout.preferredWidth: Theme.iconButtonSize
+                    symbol: "restart_alt"
+                    text: ""
+                    accessibleName: qsTr("Restart")
+                    ToolTip.visible: hovered
+                    ToolTip.text: accessibleName
+                    onClicked: root.requestPowerAction("restart")
+                }
+                ShellButton {
+                    Layout.preferredWidth: Theme.iconButtonSize
+                    symbol: "power_settings_new"
+                    text: ""
+                    danger: true
+                    accessibleName: qsTr("Power off")
+                    ToolTip.visible: hovered
+                    ToolTip.text: accessibleName
+                    onClicked: root.requestPowerAction("poweroff")
                 }
             }
 
@@ -632,6 +731,59 @@ Item {
                     color: shell.bluetoothAgent.statusMessage.includes("failed") || shell.bluetoothAgent.statusMessage.includes("stopped") ? Theme.danger : Theme.muted
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
+                }
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            visible: root.pendingPowerAction !== ""
+            focus: visible
+            color: Theme.scrim
+            z: 20
+
+            onVisibleChanged: {
+                if (visible)
+                    Qt.callLater(cancelPowerButton.forceActiveFocus)
+            }
+
+            MouseArea { anchors.fill: parent }
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: Math.min(440 * Theme.scale, parent.width - Theme.unit * 12)
+                implicitHeight: powerConfirmColumn.implicitHeight + Theme.unit * 10
+                radius: Theme.radiusLarge
+                color: Theme.surfaceRaised
+                border.width: 1
+                border.color: Theme.outline
+
+                ColumnLayout {
+                    id: powerConfirmColumn
+                    anchors.fill: parent
+                    anchors.margins: Theme.unit * 5
+                    spacing: Theme.unit * 3
+
+                    Label {
+                        text: root.pendingPowerAction === "restart" ? qsTr("Restart computer?") : qsTr("Power off computer?")
+                        color: Theme.foreground
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontTitle
+                        font.weight: Font.DemiBold
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("Unsaved work may be lost.")
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontBody
+                        wrapMode: Text.Wrap
+                    }
+                    RowLayout {
+                        Layout.alignment: Qt.AlignRight
+                        ShellButton { id: cancelPowerButton; text: qsTr("Cancel"); onClicked: root.pendingPowerAction = "" }
+                        ShellButton { text: root.pendingPowerAction === "restart" ? qsTr("Restart") : qsTr("Power off"); danger: true; onClicked: root.confirmPowerAction() }
+                    }
                 }
             }
         }

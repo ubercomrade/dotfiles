@@ -83,14 +83,6 @@ Scope {
         function toggle(): void { root.modal === "launcher" ? root.closeModal() : root.openModal("launcher") }
     }
     IpcHandler {
-        target: "settings"
-        function toggle(): void { root.modal === "settings" ? root.closeModal() : root.openModal("settings") }
-        function open(section: string): void {
-            ShellSettings.settingsSection = section
-            root.openModal("settings")
-        }
-    }
-    IpcHandler {
         target: "monitor"
         function toggle(): void { ShellSettings.monitorVisible = !ShellSettings.monitorVisible }
         function dashboard(): void { root.modal === "monitor" ? root.closeModal() : root.openModal("monitor") }
@@ -132,7 +124,7 @@ Scope {
     Binding {
         target: MetricsService
         property: "active"
-        value: ShellSettings.monitorVisible || root.modal === "monitor" || root.modal === "settings"
+        value: ShellSettings.monitorVisible || root.modal === "monitor"
     }
     Process {
         id: keyboardProcess

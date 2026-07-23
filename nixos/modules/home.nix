@@ -33,11 +33,11 @@ in
     swayidle
     xdg-user-dirs
     material-symbols
+    adwaita-icon-theme
     dgop
     pixi
     uv
     julia
-    zed-editor
     neovim
     nodejs_24
     imagemagick
@@ -45,6 +45,7 @@ in
       pynvim
       jupyter-client
       jupytext
+      ipykernel
     ]))
     git
     ripgrep
@@ -52,7 +53,43 @@ in
     lazygit
     pyright
     ruff
+    unzip
+    tree-sitter
+    gcc
+    jq
+    lua
+    qt6Packages.qtdeclarative
   ];
+
+  systemd.user.services = {
+    quickshell = {
+      Unit = {
+        Description = "Quickshell desktop shell";
+        PartOf = [ "graphical-session.target" ];
+        After = [ "graphical-session.target" ];
+        Requisite = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${pkgs.quickshell}/bin/qs -c minimal";
+        Restart = "on-failure";
+        RestartSec = 1;
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
+    cliphist = {
+      Unit = {
+        Description = "Wayland clipboard history";
+        PartOf = [ "graphical-session.target" ];
+        After = [ "graphical-session.target" ];
+        Requisite = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --watch ${pkgs.cliphist}/bin/cliphist store";
+        Restart = "on-failure";
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
+  };
 
   xdg.configFile = {
     "niri/config.kdl".source = "${shared}/niri/.config/niri/config.kdl";
@@ -65,7 +102,6 @@ in
     "xdg-desktop-portal/niri-portals.conf".source = "${shared}/portal/.config/xdg-desktop-portal/niri-portals.conf";
     "mimeapps.list".source = "${shared}/mime/.config/mimeapps.list";
     "nvim".source = "${shared}/nvim/.config/nvim";
-    "zed".source = "${shared}/zed/.config/zed";
   };
 
   dconf.settings."org/gnome/desktop/interface" = {
