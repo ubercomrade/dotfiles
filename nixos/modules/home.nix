@@ -58,7 +58,7 @@ in
   xdg.configFile = {
     "niri/config.kdl".source = "${shared}/niri/.config/niri/config.kdl";
     "niri/host.kdl".source = "${host}/.config/niri/host.kdl";
-    "quickshell/minimal/shell.qml".source = "${shared}/quickshell/.config/quickshell/minimal/shell.qml";
+    "quickshell/minimal".source = "${shared}/quickshell/.config/quickshell/minimal";
     "kitty/kitty.conf".source = "${shared}/kitty/.config/kitty/kitty.conf";
     "mako/config".source = "${shared}/mako/.config/mako/config";
     "kdeglobals".source = "${shared}/kde/.config/kdeglobals";

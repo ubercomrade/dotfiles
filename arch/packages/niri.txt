@@ -3,6 +3,7 @@ niri
 xwayland-satellite
 quickshell
 stow
+breeze-icons
 kitty
 dolphin
 firefox
@@ -18,6 +19,7 @@ playerctl
 grim
 slurp
 wl-clipboard
+cliphist
 mako
 swaylock
 swayidle

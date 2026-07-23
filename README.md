@@ -47,37 +47,44 @@ This previews only Stow links. It does not create `host.kdl` or enable the user 
 
 ## Arch quick start
 
-Install Git, clone to a permanent path, then deploy only the Niri runtime and session configuration:
+Install Git, clone to a permanent path, then start the guided installer:
 
 ```sh
 sudo pacman -Syu git
 git clone https://github.com/ubercomrade/dotfiles.git "$HOME/dotfiles"
 cd "$HOME/dotfiles"
-./apply.sh --os arch --host generic --niri-packages --niri-config
+./apply.sh
 niri validate --config "$HOME/.config/niri/config.kdl"
 ```
 
-Select Niri in an existing display manager, or run `niri-session` from a TTY. Keep the previous desktop available until locking, suspend, notifications, portals, audio, and displays have been tested after a clean login.
+On Arch, the wizard defaults to the full package and dotfile deployment, asks separately before enabling NetworkManager/Bluetooth or Ly, prints the plan, then requires confirmation. Select Niri in an existing display manager, or run `niri-session` from a TTY. Keep the previous desktop available until locking, suspend, notifications, portals, audio, and displays have been tested after a clean login.
 
-To opt into every package and user configuration in the repository:
-
-```sh
-./apply.sh --os arch --host generic --packages --stow
-```
-
-System services are a separate opt-in:
+Use explicit commands for repeatable or noninteractive deployment:
 
 ```sh
-./apply.sh --os arch --host generic --enable-services
+./apply.sh full              # packages and all dotfiles
+./apply.sh niri              # Niri session beside an existing desktop
+./apply.sh config laptop     # refresh all dotfiles for a host
+./apply.sh plan full laptop  # inspect without changing the system
 ```
 
-This enables NetworkManager and Bluetooth. Ly is deliberately separate because it conflicts with an existing display manager:
+For configuration updates only, use the dedicated wrapper:
 
 ```sh
-./apply.sh --os arch --host generic --enable-ly
+./update-config.sh        # generic host
+./update-config.sh laptop
 ```
 
-`--enable-ly` refuses to proceed when `display-manager.service` is active or enabled. When safe, it enables Ly on tty2 and disables `getty@tty2`.
+It runs the same Stow conflict check and never installs packages or changes system services.
+
+System services remain separate opt-ins:
+
+```sh
+./apply.sh services
+./apply.sh ly
+```
+
+`services` enables NetworkManager and Bluetooth. `ly` refuses to proceed when a known display manager is active or enabled; when safe, it enables Ly on tty2 and disables `getty@tty2`.
 
 See [`docs/migration-existing-desktop.md`](docs/migration-existing-desktop.md) before applying the repository over an existing desktop configuration.
 
@@ -101,30 +108,35 @@ Then:
 
 ```sh
 nix flake check "path:$PWD"
-sudo nixos-rebuild build --flake "path:$PWD#myhost"
-sudo nixos-rebuild test --flake "path:$PWD#myhost"
-sudo nixos-rebuild switch --flake "path:$PWD#myhost"
+./apply.sh build myhost
+./apply.sh test myhost
+./apply.sh switch myhost
 ```
 
-The `build` action does not activate the configuration. The optional `test` action activates it until reboot without making it the boot default. Run `switch` only after that test succeeds. `./apply.sh --os nixos --host myhost` is a convenience wrapper for the final `switch`; it is not a preview command.
+The `build` action does not activate the configuration. The optional `test` action activates it until reboot without making it the boot default. Run `switch` only after that test succeeds. The interactive NixOS wizard selects `build` by default.
 
 The `path:$PWD` form includes newly created host files before they are staged. Alternatively, add the host and hardware files to Git before using a plain `.` flake reference.
 
 Keep `system.stateVersion` and `home.stateVersion` at the release used for the original installation rather than automatically raising them during an upgrade.
 
-## Deployment actions
+## Deployment commands
 
-| Action | Effects |
+| Command | Effects |
 | --- | --- |
-| `--niri-packages` | Runs `pacman -Syu --needed` for the Niri session manifest |
-| `--packages` | Runs `pacman -Syu --needed` for the complete manifests and installs Jupytext with `uv` when absent |
-| `--niri-config` | Stows Niri session packages, links the selected host profile, and enables the user Polkit service |
-| `--stow` | Stows every package under `shared/stow/`, links the host profile, and enables the user Polkit service |
-| `--enable-services` | Enables NetworkManager and Bluetooth |
-| `--enable-ly` | Enables Ly on tty2 only when no display manager or Ly instance is active |
-| NixOS apply | Runs privileged `nixos-rebuild switch` for the selected flake output |
+| `./apply.sh` | Starts the interactive installer on a TTY |
+| `full [HOST]` | Runs `pacman -Syu --needed` for complete manifests, installs Jupytext through `uv` when needed, and stows every package |
+| `niri [HOST]` | Runs `pacman -Syu --needed` for the Niri manifest and deploys the Niri session configuration |
+| `config [HOST]` | Stows every package without installing packages |
+| `services` | Enables NetworkManager and Bluetooth |
+| `ly` | Enables Ly on tty2 only when no display manager or Ly instance is active |
+| `build HOST` | Builds a NixOS host without activation |
+| `test HOST` | Activates a NixOS host until reboot |
+| `switch HOST` | Activates a NixOS host permanently |
+| `plan COMMAND ...` | Prints the effects of a command without changing the system |
 
-Action flags are required. Running the Arch installer without an action prints usage and changes nothing. Pacman and Nix commands access the network; the first Neovim start can also download plugins pinned by `lazy-lock.json`.
+Running `./apply.sh` without a terminal prints usage and changes nothing. Explicit commands never ask interactive questions. Pacman and Nix commands access the network; the first Neovim start can also download plugins pinned by `lazy-lock.json`.
+
+Before Stow changes `$HOME`, the Arch installer checks every file it will manage. Repository-managed links are updated normally; for an existing unrelated file or link, an interactive run asks whether to replace it. Declining any replacement cancels the deployment without deleting conflicts. A noninteractive run refuses conflicts and leaves them untouched.
 
 ## Managed configuration
 
@@ -143,7 +155,7 @@ The complete Stow deployment manages these packages:
 | `nvim` | Neovim and LazyVim configuration |
 | `zed` | Zed settings, keymap, and snippets |
 
-The limited `--niri-config` action deploys only the first five packages. Shared settings include US/RU keyboard layouts switched with Alt+Shift, natural touchpad scrolling, Noto fonts, Kitty-oriented notebook rendering, and Python-focused editor defaults.
+The `niri` preset deploys only the Niri session packages: Niri, Quickshell, Mako, portal, and the user Polkit service. Shared settings include a GNOME-like Quickshell panel on every output, a focused-output launcher on `Super+D`, a shortcut overlay on `Super+Shift+/`, US/RU layouts switched with `Ctrl+Space`, natural touchpad scrolling, Noto fonts, Kitty-oriented notebook rendering, and Python-focused editor defaults. The launcher provides application search, shell commands, and clipboard history through `cliphist`.
 
 ## Host customization
 

@@ -1,0 +1,94 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import "."
+
+Item {
+    id: root
+    required property var shell
+    focus: true
+    property var shortcuts: [
+        { category: "Launcher", keys: ["Super", "D"], action: "Open launcher" },
+        { category: "Launcher", keys: ["Super", "Shift", "/"], action: "Show shortcuts" },
+        { category: "Session", keys: ["Ctrl", "Space"], action: "Switch language" },
+        { category: "Applications", keys: ["Super", "Return"], action: "Terminal" },
+        { category: "Applications", keys: ["Super", "E"], action: "Files" },
+        { category: "Applications", keys: ["Super", "W"], action: "Browser" },
+        { category: "Windows", keys: ["Super", "Q"], action: "Close window" },
+        { category: "Windows", keys: ["Super", "Space"], action: "Toggle floating" },
+        { category: "Windows", keys: ["Super", "F"], action: "Maximize column" },
+        { category: "Windows", keys: ["Super", "Shift", "F"], action: "Fullscreen" },
+        { category: "Workspaces", keys: ["Super", "1-9"], action: "Focus workspace" },
+        { category: "Workspaces", keys: ["Super", "Shift", "1-9"], action: "Move window" },
+        { category: "Screenshots", keys: ["Print"], action: "Screenshot" },
+        { category: "Screenshots", keys: ["Super", "Shift", "S"], action: "Copy selected area" },
+        { category: "Media", keys: ["Media keys"], action: "Volume, brightness, playback" },
+        { category: "Session", keys: ["Super", "L"], action: "Lock screen" }
+    ]
+    property var categories: ["Launcher", "Applications", "Windows", "Workspaces", "Screenshots", "Media", "Session"]
+
+    Rectangle {
+        anchors.centerIn: parent
+        width: Math.min(760, parent.width - Theme.unit * 8)
+        height: Math.min(560, parent.height - Theme.unit * 8)
+        radius: Theme.radiusLarge
+        color: Theme.surface
+        border.width: 1
+        border.color: Theme.outline
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: Theme.unit * 5
+            spacing: Theme.unit * 4
+
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: "Keyboard shortcuts"; color: Theme.foreground; font.pixelSize: 21; font.weight: Font.DemiBold }
+                Item { Layout.fillWidth: true }
+                Label { text: "Esc to close"; color: Theme.muted }
+            }
+
+            Flickable {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentHeight: shortcutColumns.implicitHeight
+
+                Flow {
+                    id: shortcutColumns
+                    width: parent.width
+                    spacing: Theme.unit * 5
+
+                    Repeater {
+                        model: root.categories
+                        delegate: Column {
+                            required property string modelData
+                            width: Math.min(340, (shortcutColumns.width - Theme.unit * 5) / 2)
+                            spacing: Theme.unit * 2
+
+                            Label { text: modelData; color: Theme.accent; font.bold: true }
+                            Repeater {
+                                model: root.shortcuts.filter(shortcut => shortcut.category === modelData)
+                                delegate: RowLayout {
+                                    required property var modelData
+                                    width: parent.width
+                                    spacing: Theme.unit * 2
+                                    Row {
+                                        spacing: Theme.unit
+                                        Repeater {
+                                            model: modelData.keys
+                                            delegate: Keycap { required property string modelData; label: modelData }
+                                        }
+                                    }
+                                    Label { Layout.fillWidth: true; text: modelData.action; color: Theme.foreground; elide: Text.ElideRight }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Keys.onEscapePressed: shell.closeModal()
+}

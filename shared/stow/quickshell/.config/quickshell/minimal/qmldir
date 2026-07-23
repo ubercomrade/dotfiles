@@ -1,0 +1,7 @@
+module minimal
+singleton Theme 1.0 Theme.qml
+Bar 1.0 Bar.qml
+Keycap 1.0 Keycap.qml
+Launcher 1.0 Launcher.qml
+ModalWindow 1.0 ModalWindow.qml
+ShortcutOverlay 1.0 ShortcutOverlay.qml

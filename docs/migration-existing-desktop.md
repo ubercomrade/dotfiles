@@ -24,21 +24,17 @@ At minimum, review existing Niri, Quickshell, Mako, portal, and user systemd pat
 Preview the limited deployment:
 
 ```sh
-stow --simulate --no-folding \
-  --dir="$PWD/shared/stow" \
-  --target="$HOME" \
-  niri quickshell mako portal systemd
+./apply.sh plan niri generic
 ```
 
-This previews only Stow links. The installer separately manages `host.kdl` and enables the user Polkit service.
+This prints package, Stow, and service effects without changing the system.
 
 ## Install beside the current desktop
 
 Use `generic` until a host-specific output file has been checked:
 
 ```sh
-./apply.sh --os arch --host generic --niri-packages
-./apply.sh --os arch --host generic --niri-config
+./apply.sh niri generic
 niri validate --config "$HOME/.config/niri/config.kdl"
 ```
 
@@ -53,7 +49,9 @@ Use the display manager's Niri entry or run `niri-session` from a TTY. Do not re
 Check at least:
 
 - internal and external outputs;
-- keyboard layout and configured bindings;
+- `Ctrl+Space` keyboard-layout switching and configured bindings;
+- `Super+D` launcher modes for applications, commands, and clipboard history;
+- `Super+Shift+/` shortcut overlay and Escape dismissal;
 - `Super+L` locking and unlock recovery;
 - suspend and lid handling;
 - Quickshell and Mako startup;
@@ -65,7 +63,7 @@ Portal and notification tests are most reliable after logging out of every other
 
 ## Display managers
 
-`--enable-services` manages only NetworkManager and Bluetooth. Enable Ly separately with `--enable-ly`; it refuses to proceed while `display-manager.service`, SDDM, GDM, LightDM, or greetd is active or enabled. When no display manager or Ly instance exists, it enables `ly@tty2` and disables `getty@tty2`.
+`services` manages only NetworkManager and Bluetooth. Enable Ly separately with `ly`; it refuses to proceed while `display-manager.service`, SDDM, GDM, LightDM, or greetd is active or enabled. When no display manager or Ly instance exists, it enables `ly@tty2` and disables `getty@tty2`.
 
 Ly can remember the last selected session when its `save` setting is enabled. This is display-manager configuration, not shell startup; Fish, Zsh, and Bash files do not need to launch Niri.
 
@@ -83,7 +81,7 @@ stow --simulate --no-folding \
 Then explicitly opt in:
 
 ```sh
-./apply.sh --os arch --host generic --packages --stow
+./apply.sh full generic
 ```
 
 Move or merge conflicting application files manually. Do not delete an existing configuration merely to make Stow succeed unless its backup has been verified.

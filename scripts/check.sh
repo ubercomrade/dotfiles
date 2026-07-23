@@ -19,6 +19,7 @@ require_or_skip() {
 bash -n "$repo_dir/apply.sh"
 bash -n "$repo_dir/install.sh"
 bash -n "$repo_dir/arch/install.sh"
+bash -n "$repo_dir/update-config.sh"
 
 [[ -f "$repo_dir/flake.lock" ]]
 [[ -f "$repo_dir/shared/stow/nvim/.config/nvim/lazy-lock.json" ]]
@@ -40,7 +41,7 @@ else
 fi
 
 if command -v qmllint >/dev/null; then
-    if ! qml_output=$(qmllint "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml" 2>&1); then
+    if ! qml_output=$(qmllint "$repo_dir"/shared/stow/quickshell/.config/quickshell/minimal/*.qml 2>&1); then
         if [[ -n "$qml_output" ]]; then
             printf '%s\n' "$qml_output" >&2
             exit 1
@@ -50,6 +51,11 @@ if command -v qmllint >/dev/null; then
 else
     require_or_skip "QML validation"
 fi
+
+grep -q 'target: "launcher"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'target: "shortcuts"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'Ctrl+Space.*switch-layout' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
+grep -q 'Mod+Shift+Slash.*shortcuts' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 
 if command -v stow >/dev/null; then
     target=$(mktemp -d)
@@ -87,17 +93,17 @@ if command -v stow >/dev/null; then
     printf '%s\n' '#!/usr/bin/env bash' 'exec "$@"' > "$mock_bin/sudo"
     chmod +x "$mock_bin/systemctl" "$mock_bin/sudo"
 
-    mkdir -p "$migration_target/.config/nvim" "$migration_target/.config/quickshell/ii"
-    touch "$migration_target/.config/nvim/init.lua" "$migration_target/.config/quickshell/ii/shell.qml"
+    mkdir -p "$migration_target/.config/other-app" "$migration_target/.config/quickshell/ii"
+    touch "$migration_target/.config/other-app/config" "$migration_target/.config/quickshell/ii/shell.qml"
     PATH="$mock_bin:$PATH" HOME="$migration_target" \
-        "$repo_dir/arch/install.sh" --host laptop --niri-config
-    [[ -f "$migration_target/.config/nvim/init.lua" ]]
+        "$repo_dir/arch/install.sh" laptop config
+    [[ -f "$migration_target/.config/other-app/config" ]]
     [[ -f "$migration_target/.config/quickshell/ii/shell.qml" ]]
     [[ -L "$migration_target/.config/niri/config.kdl" ]]
     [[ -L "$migration_target/.config/niri/host.kdl" ]]
 
     if PATH="$mock_bin:$PATH" HOME="$migration_target" \
-        "$repo_dir/arch/install.sh" --host laptop >/dev/null 2>&1; then
+        "$repo_dir/arch/install.sh" laptop >/dev/null 2>&1; then
         printf 'Arch installer accepted a command without an action.\n' >&2
         exit 1
     fi
@@ -106,16 +112,36 @@ if command -v stow >/dev/null; then
     mkdir -p "$foreign_target/.config/niri"
     ln -s /tmp/custom-host.kdl "$foreign_target/.config/niri/host.kdl"
     if PATH="$mock_bin:$PATH" HOME="$foreign_target" \
-        "$repo_dir/arch/install.sh" --host laptop --niri-config >/dev/null 2>&1; then
+        "$repo_dir/arch/install.sh" laptop config >/dev/null 2>&1; then
         printf 'Arch installer replaced an unmanaged host configuration.\n' >&2
         exit 1
     fi
     [[ ! -e "$foreign_target/.config/niri/config.kdl" ]]
 
+    conflict_target="$target/conflict-home"
+    mkdir -p "$conflict_target/.config/mako"
+    touch "$conflict_target/.config/mako/config"
+    if PATH="$mock_bin:$PATH" HOME="$conflict_target" \
+        "$repo_dir/arch/install.sh" laptop config >/dev/null 2>&1; then
+        printf 'Arch installer replaced a conflicting configuration without a terminal.\n' >&2
+        exit 1
+    fi
+    [[ -f "$conflict_target/.config/mako/config" ]]
+
+    linked_conflict_target="$target/linked-conflict-home"
+    mkdir -p "$linked_conflict_target/.config" "$target/external-mako"
+    ln -s "$target/external-mako" "$linked_conflict_target/.config/mako"
+    if PATH="$mock_bin:$PATH" HOME="$linked_conflict_target" \
+        "$repo_dir/arch/install.sh" laptop config >/dev/null 2>&1; then
+        printf 'Arch installer replaced a conflicting configuration directory link without a terminal.\n' >&2
+        exit 1
+    fi
+    [[ -L "$linked_conflict_target/.config/mako" ]]
+
     if [[ -f /etc/arch-release ]]; then
         service_log="$target/systemctl.log"
         MOCK_SYSTEMCTL_LOG="$service_log" MOCK_LY_STATE=existing PATH="$mock_bin:$PATH" \
-            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null
+            "$repo_dir/arch/install.sh" laptop ly >/dev/null
         if grep -q 'enable ly@tty2.service' "$service_log"; then
             printf 'Arch installer replaced an existing Ly service.\n' >&2
             exit 1
@@ -123,7 +149,7 @@ if command -v stow >/dev/null; then
 
         : > "$service_log"
         MOCK_SYSTEMCTL_LOG="$service_log" MOCK_LY_STATE=kms PATH="$mock_bin:$PATH" \
-            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null
+            "$repo_dir/arch/install.sh" laptop ly >/dev/null
         if grep -q 'enable ly@tty2.service' "$service_log"; then
             printf 'Arch installer replaced an existing Ly kmsconvt service.\n' >&2
             exit 1
@@ -131,12 +157,12 @@ if command -v stow >/dev/null; then
 
         : > "$service_log"
         MOCK_SYSTEMCTL_LOG="$service_log" MOCK_LY_STATE=none PATH="$mock_bin:$PATH" \
-            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null
+            "$repo_dir/arch/install.sh" laptop ly >/dev/null
         grep -q 'enable ly@tty2.service' "$service_log"
         grep -q 'disable getty@tty2.service' "$service_log"
 
         if MOCK_DISPLAY_MANAGER_STATE=enabled PATH="$mock_bin:$PATH" \
-            "$repo_dir/arch/install.sh" --host laptop --enable-ly >/dev/null 2>&1; then
+            "$repo_dir/arch/install.sh" laptop ly >/dev/null 2>&1; then
             printf 'Arch installer enabled Ly alongside an existing display manager.\n' >&2
             exit 1
         fi
@@ -148,6 +174,17 @@ if command -v stow >/dev/null; then
 else
     require_or_skip "Stow deployment"
     require_or_skip "Niri validation"
+fi
+
+if [[ -f /etc/arch-release ]]; then
+    "$repo_dir/apply.sh" plan niri | grep -q 'Niri session manifest'
+    "$repo_dir/apply.sh" plan full generic | grep -q 'complete package manifests'
+    "$repo_dir/apply.sh" plan services | grep -q 'NetworkManager and Bluetooth'
+    "$repo_dir/update-config.sh" generic | grep -q 'Stow every dotfile package'
+    if "$repo_dir/apply.sh" </dev/null >/dev/null 2>&1; then
+        printf 'Installer accepted a no-action noninteractive invocation.\n' >&2
+        exit 1
+    fi
 fi
 
 for manifest in "$repo_dir"/arch/packages/*.txt; do
