@@ -205,8 +205,11 @@ if $install_full || $install_niri || $install_config; then
 
     remove_conflicting_targets
 
-    # Detect Stow conflicts before changing the target tree.
-    stow --simulate --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
+    # Detect Stow conflicts before changing the target tree without noisy success output.
+    if ! stow_output=$(stow --simulate --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}" 2>&1); then
+        printf '%s\n' "$stow_output" >&2
+        exit 1
+    fi
 
     # Keep directories real so the host-specific file can coexist with shared links.
     stow --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
