@@ -1,7 +1,8 @@
 module minimal
 singleton Theme 1.0 Theme.qml
-Bar 1.0 Bar.qml
+BluetoothAgent 1.0 BluetoothAgent.qml
 Keycap 1.0 Keycap.qml
+LayoutOsd 1.0 LayoutOsd.qml
 Launcher 1.0 Launcher.qml
 ModalWindow 1.0 ModalWindow.qml
 ShortcutOverlay 1.0 ShortcutOverlay.qml

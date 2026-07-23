@@ -53,6 +53,12 @@ fi
 
 grep -q 'target: "launcher"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'target: "shortcuts"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'event-stream' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'LayoutOsd' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'Quickshell.Networking' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
+grep -q 'Quickshell.Bluetooth' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
+grep -q 'skip-at-startup' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
+! grep -q 'Bar {' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'Ctrl+Space.*switch-layout' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'Mod+Shift+Slash.*shortcuts' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 

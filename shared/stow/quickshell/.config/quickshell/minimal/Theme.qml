@@ -11,6 +11,9 @@ QtObject {
     readonly property color outline: "#45475a"
     readonly property color accent: "#89b4fa"
     readonly property color accentMuted: "#313b57"
+    readonly property color success: "#a6e3a1"
+    readonly property color warning: "#f9e2af"
+    readonly property color danger: "#f38ba8"
     readonly property color scrim: "#99000000"
 
     readonly property int unit: 4
@@ -18,7 +21,6 @@ QtObject {
     readonly property int radiusMedium: 12
     readonly property int radiusLarge: 18
     readonly property int radiusPill: 999
-    readonly property int panelHeight: 40
     readonly property int fast: 160
     readonly property int normal: 240
 }

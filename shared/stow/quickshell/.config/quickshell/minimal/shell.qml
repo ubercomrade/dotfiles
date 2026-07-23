@@ -1,6 +1,5 @@
 import Quickshell
 import Quickshell.Io
-import Quickshell.Services.UPower
 import QtQuick
 import "."
 
@@ -8,24 +7,24 @@ Scope {
     id: root
 
     property string modal: "none"
+    property string pendingModal: "none"
     property string focusedOutput: ""
-    property string networkName: "offline"
-    property string keyboardLayout: "us"
-    property var workspaces: []
-    property var workspaceIndices: {
-        const indices = new Set(workspaces.map(workspace => workspace.idx))
-        for (let index = 1; index <= 9; index++)
-            indices.add(index)
-        return Array.from(indices).sort((left, right) => left - right)
-    }
+    property var keyboardLayouts: ["English (US)", "Russian"]
+    property int keyboardLayoutIndex: 0
+    property int layoutOsdSerial: 0
+    property string keyboardLayout: keyboardLayouts[keyboardLayoutIndex] || "Unknown"
+    property alias bluetoothAgent: btAgent
 
     function openModal(nextModal): void {
-        modal = nextModal
+        pendingModal = nextModal
         focusedOutputProcess.running = true
     }
 
     function closeModal(): void {
+        if (btAgent.promptType !== "none")
+            btAgent.cancel()
         modal = "none"
+        pendingModal = "none"
     }
 
     function applicationResults(query): var {
@@ -73,6 +72,17 @@ Scope {
         target: "launcher"
         function toggle(): void { root.modal === "launcher" ? root.closeModal() : root.openModal("launcher") }
     }
+
+    BluetoothAgent {
+        id: btAgent
+    }
+    Connections {
+        target: btAgent
+        function onPromptTypeChanged(): void {
+            if (btAgent.promptType !== "none" && root.modal !== "launcher")
+                root.openModal("launcher")
+        }
+    }
     IpcHandler {
         target: "shortcuts"
         function toggle(): void { root.modal === "shortcuts" ? root.closeModal() : root.openModal("shortcuts") }
@@ -84,14 +94,9 @@ Scope {
         stdout: StdioCollector {
             onStreamFinished: {
                 try { root.focusedOutput = JSON.parse(text).name || "" } catch (_) { root.focusedOutput = "" }
+                root.modal = root.pendingModal
             }
         }
-    }
-    Process {
-        id: networkProcess
-        command: ["sh", "-c", "nmcli -t -f TYPE,STATE,CONNECTION device | sed -n '/^wifi:connected:/s/^[^:]*:[^:]*://p; /^ethernet:connected:/s/^[^:]*:[^:]*://p' | sed -n '1p'"]
-        running: true
-        stdout: StdioCollector { onStreamFinished: root.networkName = text.trim() || "offline" }
     }
     Process {
         id: keyboardProcess
@@ -101,36 +106,41 @@ Scope {
             onStreamFinished: {
                 try {
                     const layouts = JSON.parse(text)
-                    root.keyboardLayout = layouts.names[layouts.current_idx] || "us"
-                } catch (_) { root.keyboardLayout = "us" }
+                    root.keyboardLayouts = layouts.names || root.keyboardLayouts
+                    root.keyboardLayoutIndex = layouts.current_idx ?? 0
+                } catch (_) {}
             }
         }
     }
     Process {
-        id: workspaceProcess
-        command: ["niri", "msg", "--json", "workspaces"]
+        command: ["niri", "msg", "--json", "event-stream"]
         running: true
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try { root.workspaces = JSON.parse(text) } catch (_) { root.workspaces = [] }
+        stdout: SplitParser {
+            onRead: data => {
+                let event
+                try { event = JSON.parse(data) } catch (_) { return }
+
+                if (event.WorkspacesChanged) {
+                    const focused = event.WorkspacesChanged.workspaces.find(workspace => workspace.is_focused)
+                    if (focused?.output)
+                        root.focusedOutput = focused.output
+                } else if (event.KeyboardLayoutsChanged) {
+                    const layouts = event.KeyboardLayoutsChanged.keyboard_layouts
+                    root.keyboardLayouts = layouts.names || root.keyboardLayouts
+                    root.keyboardLayoutIndex = layouts.current_idx ?? root.keyboardLayoutIndex
+                } else if (event.KeyboardLayoutSwitched) {
+                    const layout = event.KeyboardLayoutSwitched
+                    root.keyboardLayoutIndex = layout.idx ?? layout.current_idx ?? root.keyboardLayoutIndex
+                    root.layoutOsdSerial++
+                }
             }
-        }
-    }
-    Timer {
-        interval: 2000
-        running: true
-        repeat: true
-        onTriggered: {
-            networkProcess.running = true
-            keyboardProcess.running = true
-            workspaceProcess.running = true
         }
     }
 
     Variants {
         model: Quickshell.screens
         delegate: Component {
-            Bar {
+            ModalWindow {
                 required property var modelData
                 shell: root
                 screenData: modelData
@@ -140,7 +150,7 @@ Scope {
     Variants {
         model: Quickshell.screens
         delegate: Component {
-            ModalWindow {
+            LayoutOsd {
                 required property var modelData
                 shell: root
                 screenData: modelData

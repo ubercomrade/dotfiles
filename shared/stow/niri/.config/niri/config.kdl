@@ -15,6 +15,10 @@ input {
 
 include "host.kdl"
 
+hotkey-overlay {
+    skip-at-startup
+}
+
 layout {
     gaps 8
     center-focused-column "never"

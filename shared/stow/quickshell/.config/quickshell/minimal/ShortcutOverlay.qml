@@ -10,27 +10,38 @@ Item {
     property var shortcuts: [
         { category: "Launcher", keys: ["Super", "D"], action: "Open launcher" },
         { category: "Launcher", keys: ["Super", "Shift", "/"], action: "Show shortcuts" },
-        { category: "Session", keys: ["Ctrl", "Space"], action: "Switch language" },
         { category: "Applications", keys: ["Super", "Return"], action: "Terminal" },
         { category: "Applications", keys: ["Super", "E"], action: "Files" },
         { category: "Applications", keys: ["Super", "W"], action: "Browser" },
         { category: "Windows", keys: ["Super", "Q"], action: "Close window" },
+        { category: "Windows", keys: ["Super", "Left / Right"], action: "Focus column" },
+        { category: "Windows", keys: ["Super", "Up / Down"], action: "Focus workspace" },
+        { category: "Windows", keys: ["Super", "Shift", "Left / Right"], action: "Move column" },
         { category: "Windows", keys: ["Super", "Space"], action: "Toggle floating" },
         { category: "Windows", keys: ["Super", "F"], action: "Maximize column" },
         { category: "Windows", keys: ["Super", "Shift", "F"], action: "Fullscreen" },
         { category: "Workspaces", keys: ["Super", "1-9"], action: "Focus workspace" },
         { category: "Workspaces", keys: ["Super", "Shift", "1-9"], action: "Move window" },
         { category: "Screenshots", keys: ["Print"], action: "Screenshot" },
+        { category: "Screenshots", keys: ["Ctrl", "Print"], action: "Copy screen" },
         { category: "Screenshots", keys: ["Super", "Shift", "S"], action: "Copy selected area" },
-        { category: "Media", keys: ["Media keys"], action: "Volume, brightness, playback" },
-        { category: "Session", keys: ["Super", "L"], action: "Lock screen" }
+        { category: "Media", keys: ["Brightness + / -"], action: "Adjust brightness" },
+        { category: "Media", keys: ["Volume + / -"], action: "Adjust volume" },
+        { category: "Media", keys: ["Volume mute"], action: "Toggle audio mute" },
+        { category: "Media", keys: ["Mic mute"], action: "Toggle microphone" },
+        { category: "Media", keys: ["Play / Pause"], action: "Toggle playback" },
+        { category: "Media", keys: ["Next"], action: "Next track" },
+        { category: "Media", keys: ["Previous"], action: "Previous track" },
+        { category: "Session", keys: ["Ctrl", "Space"], action: "Switch language" },
+        { category: "Session", keys: ["Super", "L"], action: "Lock screen" },
+        { category: "Session", keys: ["Super", "Shift", "E"], action: "Exit Niri" }
     ]
     property var categories: ["Launcher", "Applications", "Windows", "Workspaces", "Screenshots", "Media", "Session"]
 
     Rectangle {
         anchors.centerIn: parent
-        width: Math.min(760, parent.width - Theme.unit * 8)
-        height: Math.min(560, parent.height - Theme.unit * 8)
+        width: Math.min(900, parent.width - Theme.unit * 8)
+        height: Math.min(640, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -63,7 +74,7 @@ Item {
                         model: root.categories
                         delegate: Column {
                             required property string modelData
-                            width: Math.min(340, (shortcutColumns.width - Theme.unit * 5) / 2)
+                            width: Math.min(410, (shortcutColumns.width - Theme.unit * 5) / 2)
                             spacing: Theme.unit * 2
 
                             Label { text: modelData; color: Theme.accent; font.bold: true }
