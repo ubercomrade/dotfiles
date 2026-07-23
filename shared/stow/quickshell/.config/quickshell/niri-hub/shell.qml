@@ -28,8 +28,7 @@ Scope {
     function launch(entry): void { applicationService.launch(entry); closeModal() }
     function runCommand(command): void { applicationService.runCommand(command); closeModal() }
     function copyHistory(entry): void {
-        const id = String(entry).match(/^\d+/)?.[0] || ""
-        clipboardService.copy(id)
+        clipboardService.copy(entry.id)
         closeModal()
     }
 

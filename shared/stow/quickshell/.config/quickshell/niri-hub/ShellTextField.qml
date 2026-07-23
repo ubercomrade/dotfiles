@@ -4,6 +4,9 @@ import "."
 
 TextField {
     id: root
+    property string accessibleName: ""
+
+    Accessible.name: root.accessibleName || root.placeholderText
     implicitHeight: Theme.controlHeight
     leftPadding: Theme.unit * 3
     rightPadding: Theme.unit * 3

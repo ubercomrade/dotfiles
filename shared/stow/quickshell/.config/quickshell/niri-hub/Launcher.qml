@@ -18,8 +18,9 @@ Item {
     property string mode: LauncherState.page === "clipboard" ? "clipboard" : "apps"
     property int currentIndex: LauncherState.selectedIndex
     property var clipboardEntries: []
-    property var appEntries: shell.applicationResults(query.text)
-    property var visibleEntries: mode === "apps" ? appEntries : mode === "clipboard" ? clipboardEntries.filter(entry => entry.toLowerCase().includes(query.text.toLowerCase())) : []
+    property string searchQuery: ""
+    property var appEntries: shell.applicationResults(searchQuery)
+    property var visibleEntries: mode === "apps" ? appEntries : mode === "clipboard" ? clipboardEntries.filter(entry => entry.preview.toLowerCase().includes(query.text.toLowerCase())) : []
     property var wifiDevice: Networking.devices.values.find(device => device.type === DeviceType.Wifi) || null
     property var wifiNetworks: wifiDevice ? wifiDevice.networks.values.slice().sort((left, right) => Number(right.connected) - Number(left.connected) || right.signalStrength - left.signalStrength || left.name.localeCompare(right.name)) : []
     property var connectedNetwork: wifiNetworks.find(network => network.connected) || null
@@ -154,8 +155,17 @@ Item {
         id: clipboardProcess
         command: ["cliphist", "list"]
         stdout: StdioCollector {
-            onStreamFinished: root.clipboardEntries = text.trim() ? text.trim().split("\n") : []
+            onStreamFinished: root.clipboardEntries = text.trim() ? text.trim().split("\n").map(line => {
+                const tab = line.indexOf("\t")
+                return { id: tab >= 0 ? line.slice(0, tab) : line, preview: tab >= 0 ? line.slice(tab + 1) : line }
+            }) : []
         }
+    }
+
+    Timer {
+        id: searchTimer
+        interval: 100
+        onTriggered: root.searchQuery = query.text
     }
 
     SystemClock {
@@ -191,22 +201,20 @@ Item {
 
         background: Rectangle {
             radius: Theme.radiusMedium
-            color: control.down ? Theme.accentMuted : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+            color: control.down ? Theme.accentMuted : control.hovered ? Theme.surfaceHover : Theme.pillBackground
             border.width: 1
             border.color: control.activeFocus ? Theme.accent : "transparent"
             Behavior on color { ColorAnimation { duration: Theme.fast } }
         }
         contentItem: RowLayout {
             spacing: Theme.unit * 2
-            Rectangle {
+            Item {
                 Layout.preferredWidth: 28 * Theme.scale
                 Layout.preferredHeight: 28 * Theme.scale
-                radius: Theme.radiusSmall
-                color: Theme.accentMuted
                 ShellIcon {
                     anchors.centerIn: parent
                     text: control.iconName
-                    color: Theme.accent
+                    color: Theme.foreground
                     iconSize: 20
                 }
             }
@@ -236,14 +244,19 @@ Item {
 
     component BatteryIndicator: Rectangle {
         id: batteryIndicator
-        readonly property real level: Math.max(0, Math.min(1, UPower.displayDevice.percentage / 100))
+        readonly property real level: Math.max(0, Math.min(1, UPower.displayDevice.percentage))
         readonly property color fillColor: level <= 0.15 ? Theme.danger : UPower.onBattery ? Theme.accent : Theme.success
+        readonly property string detail: UPower.onBattery ? qsTr("%1% remaining, %2 minutes").arg(Math.round(level * 100)).arg(Math.round(UPower.displayDevice.timeToEmpty / 60)) : UPower.displayDevice.timeToFull > 0 ? qsTr("%1% charged, %2 minutes until full").arg(Math.round(level * 100)).arg(Math.round(UPower.displayDevice.timeToFull / 60)) : qsTr("%1% charged").arg(Math.round(level * 100))
 
-        Accessible.name: qsTr("Battery %1 percent").arg(Math.round(level * 100))
+        Accessible.name: qsTr("Battery: %1").arg(detail)
         Layout.preferredWidth: 86 * Theme.scale
         Layout.preferredHeight: 52 * Theme.scale
         radius: Theme.radiusMedium
-        color: Theme.surfaceRaised
+        color: "transparent"
+
+        HoverHandler { id: batteryHover }
+        ToolTip.visible: batteryHover.hovered
+        ToolTip.text: batteryIndicator.detail
 
         RowLayout {
             anchors.centerIn: parent
@@ -282,12 +295,12 @@ Item {
                         }
                     }
 
-                    ShellIcon {
+                    Label {
                         anchors.centerIn: parent
                         visible: !UPower.onBattery
-                        text: "bolt"
+                        text: "\u26a1"
                         color: Theme.accentForeground
-                        iconSize: 12
+                        font.pixelSize: 14 * Theme.scale
                     }
                 }
 
@@ -318,7 +331,7 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: Math.round(100 * Theme.scale)
         width: Math.min(Theme.launcherWidth, parent.width - Theme.unit * 8)
-        height: Math.min(Theme.launcherHeight, parent.height - Theme.unit * 8)
+        height: Math.min(Theme.launcherHeight, Math.max(0, parent.height - anchors.topMargin - Theme.unit * 4))
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -356,10 +369,6 @@ Item {
 
                 BatteryIndicator {
                     visible: UPower.displayDevice.isLaptopBattery
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.openSection("battery")
-                    }
                 }
 
                 StatusButton {
@@ -413,7 +422,10 @@ Item {
             ColumnLayout {
                 visible: root.section === "main"
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.fillHeight: visible
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                Layout.minimumHeight: 0
+                Layout.maximumHeight: visible ? Infinity : 0
                 spacing: Theme.unit * 3
 
                 RowLayout {
@@ -436,6 +448,14 @@ Item {
                                 border.width: modeButton.activeFocus ? 2 : 0
                                 border.color: Theme.accent
                             }
+                            contentItem: Label {
+                                text: modeButton.text
+                                color: Theme.foreground
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontBody
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
                     }
                     Item { Layout.fillWidth: true }
@@ -444,11 +464,15 @@ Item {
 
                 ShellTextField {
                     id: query
+                    accessibleName: qsTr("Search applications")
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.controlHeight
                     placeholderText: root.mode === "apps" ? "Search applications" : root.mode === "run" ? "Run command" : "Search clipboard history"
                     selectByMouse: true
-                    onTextChanged: root.currentIndex = 0
+                    onTextChanged: {
+                        root.currentIndex = 0
+                        searchTimer.restart()
+                    }
                     onAccepted: root.activate()
                     Component.onCompleted: forceActiveFocus()
                     Keys.onEscapePressed: root.handleEscape()
@@ -470,8 +494,8 @@ Item {
                                 clipboardProcess.running = true
                             event.accepted = true
                         } else if (event.key === Qt.Key_Delete && root.mode === "clipboard") {
-                            const id = String(root.visibleEntries[root.currentIndex] || "").match(/^\d+/)?.[0] || ""
-                            shell.clipboardService.remove(id)
+                            const entry = root.visibleEntries[root.currentIndex]
+                            shell.clipboardService.remove(entry?.id || "")
                             clipboardProcess.running = true
                             event.accepted = true
                         } else if (event.key === Qt.Key_Tab) {
@@ -544,7 +568,7 @@ Item {
                                 spacing: 1
                                 Label {
                                     Layout.fillWidth: true
-                                    text: root.mode === "apps" ? modelData.entry.name : modelData
+                                    text: root.mode === "apps" ? modelData.entry.name : modelData.preview
                                     textFormat: Text.PlainText
                                     color: Theme.foreground
                                     font.family: Theme.fontFamily
@@ -577,13 +601,16 @@ Item {
             ColumnLayout {
                 visible: root.section === "wifi"
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.fillHeight: visible
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                Layout.minimumHeight: 0
+                Layout.maximumHeight: visible ? Infinity : 0
                 spacing: Theme.unit * 3
 
                 RowLayout {
                     Layout.fillWidth: true
-                    ShellButton { text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
-                    Label { text: "Wi-Fi networks"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
+                    ShellButton { compact: true; text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
+                    Label { Layout.leftMargin: Theme.unit * 2; text: "Wi-Fi networks"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Item { Layout.fillWidth: true }
                     ShellToggle {
                         text: Networking.wifiEnabled ? "On" : "Off"
@@ -625,26 +652,27 @@ Item {
                         }
                         contentItem: RowLayout {
                             spacing: Theme.unit * 3
-                            Rectangle {
+                            Item {
                                 Layout.preferredWidth: 28 * Theme.scale
                                 Layout.preferredHeight: 28 * Theme.scale
-                                radius: Theme.radiusSmall
-                                color: Theme.accentMuted
-                                ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "wifi" : "network_wifi"; color: Theme.accent; iconSize: 19 }
+                                ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "wifi" : "network_wifi"; color: Theme.foreground; iconSize: 19 }
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                                 spacing: 0
-                                Label { text: modelData.name; textFormat: Text.PlainText; color: Theme.foreground; font.weight: Font.DemiBold }
+                                Label { Layout.fillWidth: true; text: modelData.name; textFormat: Text.PlainText; color: Theme.foreground; font.weight: Font.DemiBold; elide: Text.ElideRight }
                                 Label {
+                                    Layout.fillWidth: true
                                     text: modelData.connected ? "Connected" : modelData.stateChanging ? "Connecting..." : modelData.known ? "Saved network" : modelData.security === WifiSecurityType.Open || modelData.security === WifiSecurityType.Owe ? "Open network" : root.supportsPsk(modelData) ? "Password required" : "Unsupported security"
                                     color: modelData.connected ? Theme.success : Theme.muted
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontCaption
+                                    elide: Text.ElideRight
                                 }
                             }
-                            Label { text: `${Math.round(modelData.signalStrength * 100)}%`; color: Theme.muted }
-                            Label { text: modelData.connected ? "Disconnect" : "Connect"; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption }
+                            Label { Layout.preferredWidth: 48 * Theme.scale; text: `${Math.round(modelData.signalStrength * 100)}%`; color: Theme.foreground; horizontalAlignment: Text.AlignRight }
+                            Label { Layout.preferredWidth: 88 * Theme.scale; text: modelData.connected ? "Disconnect" : "Connect"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption; horizontalAlignment: Text.AlignRight }
                         }
                         Connections {
                             target: modelData
@@ -670,6 +698,7 @@ Item {
                             Label { text: `Password for ${root.passwordNetwork?.name || "network"}`; color: Theme.foreground }
                             ShellTextField {
                                 id: wifiPassword
+                                accessibleName: qsTr("Network password")
                                 Layout.fillWidth: true
                                 echoMode: TextInput.Password
                                 placeholderText: "Network password"
@@ -686,13 +715,16 @@ Item {
             ColumnLayout {
                 visible: root.section === "bluetooth"
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.fillHeight: visible
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                Layout.minimumHeight: 0
+                Layout.maximumHeight: visible ? Infinity : 0
                 spacing: Theme.unit * 3
 
                 RowLayout {
                     Layout.fillWidth: true
-                    ShellButton { text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
-                    Label { text: "Bluetooth devices"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
+                    ShellButton { compact: true; text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
+                    Label { Layout.leftMargin: Theme.unit * 2; text: "Bluetooth devices"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Item { Layout.fillWidth: true }
                     Label { visible: root.bluetoothAdapter?.discovering ?? false; text: "Scanning..."; color: Theme.accent }
                     ShellToggle {
@@ -736,30 +768,33 @@ Item {
                         }
                         contentItem: RowLayout {
                             spacing: Theme.unit * 3
-                            Rectangle {
+                            Item {
                                 Layout.preferredWidth: 30 * Theme.scale
                                 Layout.preferredHeight: 30 * Theme.scale
-                                radius: Theme.radiusSmall
-                                color: Theme.accentMuted
-                                ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "bluetooth_connected" : "bluetooth"; color: Theme.accent; iconSize: 19 }
+                                ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "bluetooth_connected" : "bluetooth"; color: Theme.foreground; iconSize: 19 }
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                                 spacing: 0
-                                Label { text: modelData.name || modelData.deviceName || modelData.address; textFormat: Text.PlainText; color: Theme.foreground; font.weight: Font.DemiBold }
+                                Label { Layout.fillWidth: true; text: modelData.name || modelData.deviceName || modelData.address; textFormat: Text.PlainText; color: Theme.foreground; font.weight: Font.DemiBold; elide: Text.ElideRight }
                                 Label {
+                                    Layout.fillWidth: true
                                     text: modelData.connected ? "Connected" : modelData.pairing ? "Pairing..." : modelData.state === BluetoothDeviceState.Connecting ? "Connecting..." : modelData.paired ? "Paired" : "New device"
                                     color: modelData.connected ? Theme.success : Theme.muted
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontCaption
+                                    elide: Text.ElideRight
                                 }
                             }
                             Label {
                                 visible: modelData.batteryAvailable
+                                Layout.preferredWidth: 48 * Theme.scale
                                 text: `${Math.round(modelData.battery * 100)}%`
-                                color: Theme.muted
+                                color: Theme.foreground
+                                horizontalAlignment: Text.AlignRight
                             }
-                            Label { text: modelData.connected ? "Disconnect" : modelData.paired ? "Connect" : "Pair"; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption }
+                            Label { Layout.preferredWidth: 88 * Theme.scale; text: modelData.connected ? "Disconnect" : modelData.paired ? "Connect" : "Pair"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption; horizontalAlignment: Text.AlignRight }
                         }
                     }
                 }
@@ -775,17 +810,20 @@ Item {
             ColumnLayout {
                 visible: root.section === "battery" && UPower.displayDevice.isLaptopBattery
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.fillHeight: false
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                Layout.minimumHeight: 0
+                Layout.maximumHeight: visible ? Infinity : 0
                 spacing: Theme.unit * 3
 
                 RowLayout {
                     Layout.fillWidth: true
-                    ShellButton { text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
-                    Label { text: qsTr("Battery"); color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
+                    ShellButton { compact: true; text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
+                    Label { Layout.leftMargin: Theme.unit * 2; text: qsTr("Battery"); color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                 }
                 Label {
                     Layout.fillWidth: true
-                    text: qsTr("%1% charged").arg(Math.round(UPower.displayDevice.percentage || 0))
+                    text: qsTr("%1% charged").arg(Math.round((UPower.displayDevice.percentage || 0) * 100))
                     color: Theme.foreground
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontDisplay
@@ -904,6 +942,7 @@ Item {
                     }
                     ShellTextField {
                         id: bluetoothCode
+                        accessibleName: shell.bluetoothAgent.promptType === "pin" ? qsTr("PIN code") : qsTr("Passkey")
                         visible: shell.bluetoothAgent.promptType === "pin" || shell.bluetoothAgent.promptType === "passkey"
                         Layout.fillWidth: true
                         placeholderText: shell.bluetoothAgent.promptType === "pin" ? "PIN code" : "Passkey"

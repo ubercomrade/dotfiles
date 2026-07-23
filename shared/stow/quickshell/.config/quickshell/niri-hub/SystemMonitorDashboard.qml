@@ -103,6 +103,7 @@ Item {
     }
 
     Rectangle {
+        id: panel
         anchors.centerIn: parent
         width: Math.min(Theme.overlayWidth, parent.width - Theme.unit * 8)
         height: Math.min(Theme.overlayHeight, parent.height - Theme.unit * 8)
@@ -170,7 +171,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 185 * Theme.scale
+                Layout.preferredHeight: Math.max(96 * Theme.scale, Math.min(185 * Theme.scale, panel.height - 390 * Theme.scale))
                 spacing: Theme.unit * 3
 
                 Rectangle {
@@ -232,13 +233,16 @@ Item {
                         Label { text: "CPU"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
                         Label { text: "MEM"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
                     }
-                    Repeater {
+                    ListView {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
                         model: MetricsService.processes
-                        Button {
+                        delegate: Button {
                             id: processRow
                             required property var modelData
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 26 * Theme.scale
+                            width: ListView.view.width
+                            height: 26 * Theme.scale
                             flat: true
                             Accessible.name: qsTr("End process %1").arg(modelData.command || modelData.fullCommand || modelData.pid)
                             onClicked: root.pendingProcess = modelData
@@ -262,7 +266,6 @@ Item {
                         color: Theme.muted
                         Layout.alignment: Qt.AlignHCenter
                     }
-                    Item { Layout.fillHeight: true }
                 }
             }
         }

@@ -7,13 +7,14 @@ QtObject {
 
     readonly property color windowBackground: "#1e1e1e"
     readonly property color elevatedBackground: "#303030"
+    readonly property color pillBackground: "#383838"
     readonly property color secondaryBackground: "#252525"
     readonly property color textPrimary: "#ffffff"
     readonly property color textSecondary: "#c0bfbc"
-    readonly property color textDisabled: "#77767b"
+    readonly property color textDisabled: "#aaa7ad"
     readonly property color accent: ShellSettings.accentColor
     readonly property color accentMuted: Qt.rgba(accent.r, accent.g, accent.b, 0.18)
-    readonly property color accentForeground: "#ffffff"
+    readonly property color accentForeground: "#1c1b1f"
     readonly property color success: "#57e389"
     readonly property color warning: "#f8e45c"
     readonly property color destructive: "#ff7b63"
@@ -43,7 +44,7 @@ QtObject {
     readonly property int rowHeight: Math.round(56 * scale)
     readonly property int cardHeight: Math.round(80 * scale)
     readonly property int iconButtonSize: Math.round(44 * scale)
-    readonly property int launcherWidth: Math.round(800 * scale)
+    readonly property int launcherWidth: Math.round(750 * scale)
     readonly property int launcherHeight: Math.round(600 * scale)
     readonly property int overlayWidth: Math.round(900 * scale)
     readonly property int overlayHeight: Math.round(650 * scale)

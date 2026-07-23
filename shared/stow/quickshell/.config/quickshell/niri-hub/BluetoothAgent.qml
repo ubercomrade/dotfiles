@@ -10,8 +10,6 @@ QtObject {
     property string promptMessage: ""
     property string statusMessage: ""
     property bool busy: false
-    property int stdoutLength: 0
-    property int stderrLength: 0
 
     function pair(device): void {
         if (!device || !device.address || busy)
@@ -45,18 +43,8 @@ QtObject {
         pendingDevice = null
     }
 
-    function consume(output, source): void {
-        let offset = source === "stdout" ? stdoutLength : stderrLength
-        if (output.length < offset)
-            offset = 0
-        if (output.length === offset)
-            return
-
-        const clean = output.slice(offset).replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "")
-        if (source === "stdout")
-            stdoutLength = output.length
-        else
-            stderrLength = output.length
+    function consume(output): void {
+        const clean = output.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "")
         promptMessage = `${promptMessage}${clean}`.slice(-2048)
 
         let match = promptMessage.match(/Confirm passkey\s+([0-9]+).*\(yes\/no\)/i)
@@ -129,15 +117,11 @@ QtObject {
             root.statusMessage = `Bluetooth agent stopped (${exitCode})`
         }
 
-        stdout: StdioCollector {
-            id: stdoutCollector
-            waitForEnd: false
-            onDataChanged: root.consume(stdoutCollector.text, "stdout")
+        stdout: SplitParser {
+            onRead: data => root.consume(data)
         }
-        stderr: StdioCollector {
-            id: stderrCollector
-            waitForEnd: false
-            onDataChanged: root.consume(stderrCollector.text, "stderr")
+        stderr: SplitParser {
+            onRead: data => root.consume(data)
         }
     }
 }
