@@ -1,5 +1,5 @@
-import Quickshell.Io
 import QtQuick
+import Quickshell.Io
 
 QtObject {
     id: root
@@ -29,6 +29,7 @@ QtObject {
         controller.write(`${value}\n`)
         promptType = "none"
         promptValue = ""
+        promptMessage = ""
     }
 
     function cancel(): void {
@@ -114,7 +115,7 @@ QtObject {
     }
 
     property Process controller: Process {
-        command: ["bluetoothctl", "--agent", "KeyboardDisplay"]
+        command: ["env", "LC_ALL=C", "bluetoothctl", "--agent", "KeyboardDisplay"]
         running: true
         stdinEnabled: true
 

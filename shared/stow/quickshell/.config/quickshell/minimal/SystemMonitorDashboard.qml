@@ -1,14 +1,18 @@
-import Quickshell
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import Quickshell
 import "."
 
 Item {
     id: root
+    required property var shell
+    focus: true
 
-    implicitWidth: 900
-    implicitHeight: 650
+    implicitWidth: Theme.overlayWidth
+    implicitHeight: Theme.overlayHeight
     property var pendingProcess: null
 
     function formatBytes(value): string {
@@ -84,7 +88,7 @@ Item {
         required property color cardColor
 
         Layout.fillWidth: true
-        Layout.preferredHeight: 80
+        Layout.preferredHeight: Theme.cardHeight
         radius: Theme.radiusMedium
         color: Theme.surfaceRaised
 
@@ -100,8 +104,8 @@ Item {
 
     Rectangle {
         anchors.centerIn: parent
-        width: Math.min(900 * Theme.scale, parent.width - Theme.unit * 8)
-        height: Math.min(650 * Theme.scale, parent.height - Theme.unit * 8)
+        width: Math.min(Theme.overlayWidth, parent.width - Theme.unit * 8)
+        height: Math.min(Theme.overlayHeight, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -166,7 +170,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 185
+                Layout.preferredHeight: 185 * Theme.scale
                 spacing: Theme.unit * 3
 
                 Rectangle {
@@ -224,27 +228,32 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: "PROCESS"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.fillWidth: true }
-                        Label { text: "PID"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
-                        Label { text: "CPU"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
-                        Label { text: "MEM"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
+                        Label { text: "PID"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
+                        Label { text: "CPU"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
+                        Label { text: "MEM"; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
                     }
                     Repeater {
                         model: MetricsService.processes
-                        Rectangle {
+                        Button {
                             id: processRow
                             required property var modelData
                             Layout.fillWidth: true
                             Layout.preferredHeight: 26 * Theme.scale
-                            radius: Theme.radiusSmall
-                            color: processMouse.containsMouse ? Theme.surfaceHover : "transparent"
-                            RowLayout {
-                                anchors.fill: parent
-                                Label { text: processRow.modelData.command || processRow.modelData.fullCommand || "unknown"; color: Theme.foreground; font.family: Theme.monoFamily; elide: Text.ElideRight; Layout.fillWidth: true }
-                                Label { text: processRow.modelData.pid; color: Theme.muted; font.family: Theme.monoFamily; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
-                                Label { text: `${(Number(processRow.modelData.cpu) || 0).toFixed(1)}%`; color: Theme.accent; font.family: Theme.monoFamily; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
-                                Label { text: `${(Number(processRow.modelData.memoryPercent) || 0).toFixed(1)}%`; color: Theme.success; font.family: Theme.monoFamily; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
+                            flat: true
+                            Accessible.name: qsTr("End process %1").arg(modelData.command || modelData.fullCommand || modelData.pid)
+                            onClicked: root.pendingProcess = modelData
+                            background: Rectangle {
+                                radius: Theme.radiusSmall
+                                color: processRow.hovered ? Theme.surfaceHover : "transparent"
+                                border.width: processRow.activeFocus ? 2 : 0
+                                border.color: Theme.accent
                             }
-                            MouseArea { id: processMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.pendingProcess = processRow.modelData }
+                            contentItem: RowLayout {
+                                Label { text: processRow.modelData.command || processRow.modelData.fullCommand || "unknown"; textFormat: Text.PlainText; color: Theme.foreground; font.family: Theme.monoFamily; elide: Text.ElideRight; Layout.fillWidth: true }
+                                Label { text: processRow.modelData.pid; color: Theme.muted; font.family: Theme.monoFamily; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
+                                Label { text: `${(Number(processRow.modelData.cpu) || 0).toFixed(1)}%`; color: Theme.accent; font.family: Theme.monoFamily; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
+                                Label { text: `${(Number(processRow.modelData.memoryPercent) || 0).toFixed(1)}%`; color: Theme.success; font.family: Theme.monoFamily; Layout.preferredWidth: 64 * Theme.scale; horizontalAlignment: Text.AlignRight }
+                            }
                         }
                     }
                     Label {
@@ -262,8 +271,15 @@ Item {
     Rectangle {
         anchors.fill: parent
         visible: root.pendingProcess !== null
+        focus: visible
         color: Theme.scrim
         z: 10
+
+        onVisibleChanged: {
+            if (visible)
+                Qt.callLater(cancelProcessButton.forceActiveFocus)
+        }
+
         MouseArea { anchors.fill: parent }
         Rectangle {
             anchors.centerIn: parent
@@ -282,10 +298,17 @@ Item {
                 Label { Layout.fillWidth: true; text: root.pendingProcess ? `${root.pendingProcess.command || root.pendingProcess.fullCommand || "Process"} (PID ${root.pendingProcess.pid}) will receive SIGTERM.` : ""; color: Theme.muted; font.family: Theme.fontFamily; wrapMode: Text.Wrap }
                 RowLayout {
                     Layout.alignment: Qt.AlignRight
-                    ShellButton { text: "Cancel"; onClicked: root.pendingProcess = null }
-                    ShellButton { text: "End process"; primary: true; onClicked: { Quickshell.execDetached(["kill", "-TERM", String(root.pendingProcess.pid)]); root.pendingProcess = null } }
+                    ShellButton { id: cancelProcessButton; text: qsTr("Cancel"); onClicked: root.pendingProcess = null }
+                    ShellButton { text: qsTr("End process"); danger: true; onClicked: { Quickshell.execDetached(["kill", "-TERM", String(root.pendingProcess.pid)]); root.pendingProcess = null } }
                 }
             }
         }
+    }
+
+    Keys.onEscapePressed: {
+        if (root.pendingProcess !== null)
+            root.pendingProcess = null
+        else
+            root.shell.closeModal()
     }
 }

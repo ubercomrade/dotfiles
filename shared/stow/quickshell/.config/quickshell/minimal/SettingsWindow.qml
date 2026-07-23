@@ -1,17 +1,20 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
 import Quickshell.Networking
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
 import "."
 
 Item {
     id: root
     required property var shell
+    focus: true
     property var wifiDevice: Networking.devices.values.find(device => device.type === DeviceType.Wifi) || null
     property var wifiNetworks: wifiDevice ? wifiDevice.networks.values.slice().sort((a, b) => Number(b.connected) - Number(a.connected) || b.signalStrength - a.signalStrength) : []
     property var bluetoothAdapter: Bluetooth.defaultAdapter
@@ -19,6 +22,7 @@ Item {
     property var passwordNetwork: null
     property var pendingOutputChange: null
     property string statusMessage: ""
+    property string pendingPowerAction: ""
     property var pages: [
         { id: "network", label: "Network", icon: "wifi" }, { id: "bluetooth", label: "Bluetooth", icon: "bluetooth" },
         { id: "audio", label: "Audio", icon: "volume_up" }, { id: "displays", label: "Displays", icon: "monitor" },
@@ -58,9 +62,6 @@ Item {
 
     function keepOutputChange(): void {
         if (!pendingOutputChange) return
-        const next = Object.assign({}, ShellSettings.outputScales)
-        next[pendingOutputChange.name] = pendingOutputChange.next
-        ShellSettings.outputScales = next
         pendingOutputChange = null
         outputRollback.stop()
     }
@@ -73,11 +74,18 @@ Item {
         outputRefresh.restart()
     }
 
-    Component.onCompleted: { MetricsService.active = true; outputsProcess.running = true }
+    function confirmPowerAction(): void {
+        if (pendingPowerAction === "restart")
+            Quickshell.execDetached(["systemctl", "reboot"])
+        else if (pendingPowerAction === "poweroff")
+            Quickshell.execDetached(["systemctl", "poweroff"])
+        pendingPowerAction = ""
+    }
+
+    Component.onCompleted: outputsProcess.running = true
     Component.onDestruction: {
         if (pendingOutputChange)
             revertOutputChange()
-        MetricsService.active = ShellSettings.monitorVisible
     }
 
     Binding { target: root.wifiDevice; property: "scannerEnabled"; value: ShellSettings.settingsSection === "network" && Networking.wifiEnabled; when: root.wifiDevice !== null; restoreMode: Binding.RestoreBindingOrValue }
@@ -101,8 +109,8 @@ Item {
 
     Rectangle {
         anchors.centerIn: parent
-        width: Math.min(1060, parent.width - Theme.unit * 8)
-        height: Math.min(720, parent.height - Theme.unit * 8)
+        width: Math.min(Theme.settingsWidth, parent.width - Theme.unit * 8)
+        height: Math.min(Theme.settingsHeight, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -156,7 +164,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: root.wifiDevice ? "Wi-Fi" : "No Wi-Fi adapter"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontLabel; Layout.fillWidth: true }
-                        ShellToggle { checked: Networking.wifiEnabled; enabled: Networking.wifiHardwareEnabled; onToggled: Networking.wifiEnabled = checked }
+                        ShellToggle { accessibleName: qsTr("Wi-Fi"); checked: Networking.wifiEnabled; enabled: Networking.wifiHardwareEnabled; onToggled: Networking.wifiEnabled = checked }
                     }
                     Repeater {
                         model: root.wifiNetworks
@@ -186,7 +194,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: root.bluetoothAdapter?.discovering ? "Scanning for devices..." : root.bluetoothAdapter ? "Bluetooth adapter" : "No Bluetooth adapter"; color: Theme.muted; font.family: Theme.fontFamily; Layout.fillWidth: true }
-                        ShellToggle { checked: root.bluetoothAdapter?.enabled ?? false; enabled: root.bluetoothAdapter !== null; onToggled: root.bluetoothAdapter.enabled = checked }
+                        ShellToggle { accessibleName: qsTr("Bluetooth"); checked: root.bluetoothAdapter?.enabled ?? false; enabled: root.bluetoothAdapter !== null; onToggled: root.bluetoothAdapter.enabled = checked }
                     }
                     Repeater {
                         model: root.bluetoothAdapter?.devices.values ?? []
@@ -206,16 +214,16 @@ Item {
                         symbol: Pipewire.defaultAudioSink?.audio.muted ? "volume_off" : "volume_up"
                         title: Pipewire.defaultAudioSink?.description || "Default output"
                         description: `${Math.round((Pipewire.defaultAudioSink?.audio.volume ?? 0) * 100)}% volume`
-                        ShellButton { symbol: Pipewire.defaultAudioSink?.audio.muted ? "volume_off" : "volume_up"; text: ""; enabled: Pipewire.defaultAudioSink !== null; onClicked: Pipewire.defaultAudioSink.audio.muted = !Pipewire.defaultAudioSink.audio.muted }
+                        ShellButton { accessibleName: qsTr("Toggle output mute"); symbol: Pipewire.defaultAudioSink?.audio.muted ? "volume_off" : "volume_up"; text: ""; enabled: Pipewire.defaultAudioSink !== null; onClicked: Pipewire.defaultAudioSink.audio.muted = !Pipewire.defaultAudioSink.audio.muted }
                     }
-                    ShellSlider { Layout.fillWidth: true; from: 0; to: 1.5; value: Pipewire.defaultAudioSink?.audio.volume ?? 0; enabled: Pipewire.defaultAudioSink !== null; onMoved: Pipewire.defaultAudioSink.audio.volume = value }
+                    ShellSlider { accessibleName: qsTr("Output volume"); Layout.fillWidth: true; from: 0; to: 1.5; value: Pipewire.defaultAudioSink?.audio.volume ?? 0; enabled: Pipewire.defaultAudioSink !== null; onMoved: Pipewire.defaultAudioSink.audio.volume = value }
                     SettingRow {
                         symbol: Pipewire.defaultAudioSource?.audio.muted ? "mic_off" : "mic"
                         title: Pipewire.defaultAudioSource?.description || "Default microphone"
                         description: `${Math.round((Pipewire.defaultAudioSource?.audio.volume ?? 0) * 100)}% input level`
-                        ShellButton { symbol: Pipewire.defaultAudioSource?.audio.muted ? "mic_off" : "mic"; text: ""; enabled: Pipewire.defaultAudioSource !== null; onClicked: Pipewire.defaultAudioSource.audio.muted = !Pipewire.defaultAudioSource.audio.muted }
+                        ShellButton { accessibleName: qsTr("Toggle microphone mute"); symbol: Pipewire.defaultAudioSource?.audio.muted ? "mic_off" : "mic"; text: ""; enabled: Pipewire.defaultAudioSource !== null; onClicked: Pipewire.defaultAudioSource.audio.muted = !Pipewire.defaultAudioSource.audio.muted }
                     }
-                    ShellSlider { Layout.fillWidth: true; from: 0; to: 1.5; value: Pipewire.defaultAudioSource?.audio.volume ?? 0; enabled: Pipewire.defaultAudioSource !== null; onMoved: Pipewire.defaultAudioSource.audio.volume = value }
+                    ShellSlider { accessibleName: qsTr("Microphone level"); Layout.fillWidth: true; from: 0; to: 1.5; value: Pipewire.defaultAudioSource?.audio.volume ?? 0; enabled: Pipewire.defaultAudioSource !== null; onMoved: Pipewire.defaultAudioSource.audio.volume = value }
                     Label { text: "Outputs"; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontLabel; font.weight: Font.DemiBold }
                     Repeater {
                         model: Pipewire.nodes.values.filter(node => node.audio && node.isSink && !node.isStream)
@@ -234,7 +242,7 @@ Item {
                 }
 
                 SettingsPage {
-                    title: "Displays"; subtitle: "Niri output scale is restored when the shell starts"
+                    title: "Displays"; subtitle: "Scale changes apply to this session; host configuration remains authoritative"
                     Rectangle {
                         visible: root.pendingOutputChange !== null
                         Layout.fillWidth: true
@@ -254,9 +262,9 @@ Item {
                             required property var modelData
                             symbol: "monitor"; title: modelData.name
                             description: `${modelData.logical?.width || "?"}x${modelData.logical?.height || "?"}, scale ${modelData.logical?.scale || 1}`
-                            ShellButton { symbol: "remove"; text: ""; onClicked: root.applyOutputScale(modelData.name, (modelData.logical?.scale || 1) - 0.25) }
+                             ShellButton { accessibleName: qsTr("Decrease display scale"); symbol: "remove"; text: ""; onClicked: root.applyOutputScale(modelData.name, (modelData.logical?.scale || 1) - 0.25) }
                             Label { text: String(modelData.logical?.scale || 1); color: Theme.foreground; font.family: Theme.monoFamily }
-                            ShellButton { symbol: "add"; text: ""; onClicked: root.applyOutputScale(modelData.name, (modelData.logical?.scale || 1) + 0.25) }
+                             ShellButton { accessibleName: qsTr("Increase display scale"); symbol: "add"; text: ""; onClicked: root.applyOutputScale(modelData.name, (modelData.logical?.scale || 1) + 0.25) }
                         }
                     }
                     SettingRow {
@@ -271,8 +279,8 @@ Item {
                     SettingRow { symbol: UPower.displayDevice.isLaptopBattery ? "battery_full" : "power"; title: UPower.displayDevice.isLaptopBattery ? `${Math.round(UPower.displayDevice.percentage * 100)}% battery` : "External power"; description: UPower.displayDevice.isLaptopBattery ? (UPower.onBattery ? "Running on battery" : "Charging or fully charged") : "No laptop battery detected" }
                     SettingRow { symbol: "lock"; title: "Lock screen"; description: "Lock this session immediately"; ShellButton { text: "Lock"; onClicked: Quickshell.execDetached(["swaylock", "-f"]) } }
                     SettingRow { symbol: "bedtime"; title: "Suspend"; description: "Suspend the computer"; ShellButton { text: "Suspend"; onClicked: Quickshell.execDetached(["systemctl", "suspend"]) } }
-                    SettingRow { symbol: "restart_alt"; title: "Restart"; description: "Restart the computer"; ShellButton { text: "Restart"; onClicked: Quickshell.execDetached(["systemctl", "reboot"]) } }
-                    SettingRow { symbol: "power_settings_new"; title: "Power off"; description: "Shut down the computer"; ShellButton { text: "Power off"; onClicked: Quickshell.execDetached(["systemctl", "poweroff"]) } }
+                    SettingRow { symbol: "restart_alt"; title: "Restart"; description: "Restart the computer"; ShellButton { text: "Restart"; danger: true; onClicked: root.pendingPowerAction = "restart" } }
+                    SettingRow { symbol: "power_settings_new"; title: "Power off"; description: "Shut down the computer"; ShellButton { text: "Power off"; danger: true; onClicked: root.pendingPowerAction = "poweroff" } }
                 }
 
                 SettingsPage {
@@ -288,20 +296,22 @@ Item {
                     RowLayout {
                         spacing: Theme.unit * 3
                         Repeater {
-                            model: [{ id: "blue", color: "#8ab4f8" }, { id: "violet", color: "#b4a0ff" }, { id: "cyan", color: "#63d8e8" }, { id: "green", color: "#83d6a2" }, { id: "rose", color: "#f49ab8" }]
+                            model: [{ id: "blue", color: "#89b4fa" }, { id: "violet", color: "#b4a0ff" }, { id: "cyan", color: "#63d8e8" }, { id: "green", color: "#83d6a2" }, { id: "rose", color: "#f49ab8" }]
                             Button {
                                 id: swatch
                                 required property var modelData
                                 implicitWidth: 46 * Theme.scale; implicitHeight: implicitWidth
                                 onClicked: ShellSettings.accentName = modelData.id
-                                background: Rectangle { radius: width / 2; color: swatch.modelData.color; border.width: ShellSettings.accentName === swatch.modelData.id ? 4 : 1; border.color: ShellSettings.accentName === swatch.modelData.id ? Theme.foreground : Theme.outline }
+                                Accessible.name: qsTr("Accent color %1").arg(modelData.id)
+                                Accessible.checked: ShellSettings.accentName === modelData.id
+                                background: Rectangle { radius: width / 2; color: swatch.modelData.color; border.width: swatch.activeFocus || ShellSettings.accentName === swatch.modelData.id ? 4 : 1; border.color: swatch.activeFocus ? Theme.accent : ShellSettings.accentName === swatch.modelData.id ? Theme.foreground : Theme.outline }
                             }
                         }
                     }
                     SettingRow {
                         symbol: "text_fields"; title: "Interface scale"; description: `${Math.round(ShellSettings.interfaceScale * 100)}%`
-                        ShellButton { symbol: "remove"; text: ""; onClicked: ShellSettings.interfaceScale = Math.max(0.85, ShellSettings.interfaceScale - 0.05) }
-                        ShellButton { symbol: "add"; text: ""; onClicked: ShellSettings.interfaceScale = Math.min(1.3, ShellSettings.interfaceScale + 0.05) }
+                        ShellButton { accessibleName: qsTr("Decrease interface scale"); symbol: "remove"; text: ""; onClicked: ShellSettings.interfaceScale = Math.max(0.85, ShellSettings.interfaceScale - 0.05) }
+                        ShellButton { accessibleName: qsTr("Increase interface scale"); symbol: "add"; text: ""; onClicked: ShellSettings.interfaceScale = Math.min(1.3, ShellSettings.interfaceScale + 0.05) }
                     }
                     SettingRow { symbol: "animation"; title: "Reduce motion"; description: "Disable non-essential transitions"; ShellToggle { checked: ShellSettings.reduceMotion; onToggled: ShellSettings.reduceMotion = checked } }
                     SettingRow { symbol: "monitoring"; title: "System monitor widget"; description: "Show the desktop performance widget"; ShellToggle { checked: ShellSettings.monitorVisible; onToggled: ShellSettings.monitorVisible = checked } }
@@ -315,6 +325,46 @@ Item {
                     SettingRow { symbol: "developer_board"; title: `Memory ${MetricsService.memoryUsage.toFixed(0)}%`; description: `${MetricsService.memoryUsed || 0} of ${MetricsService.memoryTotal || 0}` }
                     SettingRow { symbol: "hard_drive"; title: `Root disk ${MetricsService.diskUsage.toFixed(0)}%`; description: `${MetricsService.diskUsed || "Unknown"} used of ${MetricsService.diskSize || "unknown"}` }
                     ShellButton { Layout.alignment: Qt.AlignLeft; symbol: "monitoring"; text: "Open performance dashboard"; primary: true; onClicked: root.shell.openModal("monitor") }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        visible: root.pendingPowerAction !== ""
+        focus: visible
+        color: Theme.scrim
+        z: 20
+
+        onVisibleChanged: {
+            if (visible)
+                Qt.callLater(cancelPowerButton.forceActiveFocus)
+        }
+
+        MouseArea { anchors.fill: parent }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(440 * Theme.scale, parent.width - Theme.unit * 8)
+            implicitHeight: powerConfirmColumn.implicitHeight + Theme.unit * 10
+            radius: Theme.radiusLarge
+            color: Theme.surface
+            border.width: 1
+            border.color: Theme.outline
+
+            ColumnLayout {
+                id: powerConfirmColumn
+                anchors.fill: parent
+                anchors.margins: Theme.unit * 5
+                spacing: Theme.unit * 3
+
+                Label { text: root.pendingPowerAction === "restart" ? qsTr("Restart computer?") : qsTr("Power off computer?"); color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
+                Label { Layout.fillWidth: true; text: qsTr("Unsaved work may be lost."); color: Theme.muted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontBody; wrapMode: Text.Wrap }
+                RowLayout {
+                    Layout.alignment: Qt.AlignRight
+                    ShellButton { id: cancelPowerButton; text: qsTr("Cancel"); onClicked: root.pendingPowerAction = "" }
+                    ShellButton { text: root.pendingPowerAction === "restart" ? qsTr("Restart") : qsTr("Power off"); danger: true; onClicked: root.confirmPowerAction() }
                 }
             }
         }
@@ -339,5 +389,10 @@ Item {
         }
     }
 
-    Keys.onEscapePressed: shell.closeModal()
+    Keys.onEscapePressed: {
+        if (root.pendingPowerAction !== "")
+            root.pendingPowerAction = ""
+        else
+            shell.closeModal()
+    }
 }

@@ -1,7 +1,9 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Polkit
-import QtQuick
 import "."
 
 Scope {
@@ -13,13 +15,19 @@ Scope {
     property var keyboardLayouts: ["English (US)", "Russian"]
     property int keyboardLayoutIndex: 0
     property int layoutOsdSerial: 0
-    property string keyboardLayout: keyboardLayouts[keyboardLayoutIndex] || "Unknown"
+    readonly property string keyboardLayout: keyboardLayouts[keyboardLayoutIndex] || "Unknown"
     property alias bluetoothAgent: btAgent
     property alias polkitFlow: polkitAgent.flow
 
     function openModal(nextModal): void {
         pendingModal = nextModal
         focusedOutputProcess.running = true
+    }
+
+    function finishModalOpen(outputName): void {
+        focusedOutput = outputName || Quickshell.screens[0]?.name || ""
+        if (focusedOutput !== "")
+            modal = pendingModal
     }
 
     function closeModal(): void {
@@ -113,23 +121,18 @@ Scope {
         command: ["niri", "msg", "--json", "focused-output"]
         stdout: StdioCollector {
             onStreamFinished: {
-                try { root.focusedOutput = JSON.parse(text).name || "" } catch (_) { root.focusedOutput = "" }
-                root.modal = root.pendingModal
+                try { root.finishModalOpen(JSON.parse(text).name) } catch (_) { root.finishModalOpen("") }
             }
+        }
+        onExited: {
+            if (root.pendingModal !== "none" && root.modal !== root.pendingModal)
+                root.finishModalOpen("")
         }
     }
     Binding {
         target: MetricsService
         property: "active"
         value: ShellSettings.monitorVisible || root.modal === "monitor" || root.modal === "settings"
-    }
-    Timer {
-        interval: 1500
-        running: true
-        onTriggered: {
-            for (const output in ShellSettings.outputScales)
-                Quickshell.execDetached(["niri", "msg", "output", output, "scale", String(ShellSettings.outputScales[output])])
-        }
     }
     Process {
         id: keyboardProcess
@@ -146,8 +149,10 @@ Scope {
         }
     }
     Process {
+        id: niriEventProcess
         command: ["niri", "msg", "--json", "event-stream"]
         running: true
+        onExited: niriEventRestart.restart()
         stdout: SplitParser {
             onRead: data => {
                 let event
@@ -167,6 +172,15 @@ Scope {
                     root.layoutOsdSerial++
                 }
             }
+        }
+    }
+    Timer {
+        id: niriEventRestart
+        interval: 1000
+        onTriggered: {
+            keyboardProcess.running = true
+            focusedOutputProcess.running = true
+            niriEventProcess.running = true
         }
     }
 

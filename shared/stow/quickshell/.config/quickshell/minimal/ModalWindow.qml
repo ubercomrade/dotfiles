@@ -1,5 +1,7 @@
-import Quickshell
+pragma ComponentBehavior: Bound
+
 import QtQuick
+import Quickshell
 import "."
 
 PanelWindow {
@@ -7,7 +9,7 @@ PanelWindow {
     required property var shell
     required property var screenData
     screen: screenData
-    visible: shell.modal !== "none" && (shell.focusedOutput === "" || screenData.name === shell.focusedOutput)
+    visible: shell.modal !== "none" && screenData.name === shell.focusedOutput
     focusable: visible
     exclusiveZone: 0
     color: Theme.scrim
@@ -25,8 +27,10 @@ PanelWindow {
     }
 
     Loader {
+        id: contentLoader
         anchors.fill: parent
         active: window.visible
+        focus: active
         sourceComponent: shell.modal === "launcher" ? launcherComponent : shell.modal === "shortcuts" ? shortcutsComponent : shell.modal === "settings" ? settingsComponent : monitorComponent
     }
 
@@ -44,16 +48,7 @@ PanelWindow {
     }
     Component {
         id: monitorComponent
-        SystemMonitorDashboard { }
-    }
-
-    Item {
-        anchors.fill: parent
-        Shortcut {
-            sequence: "Escape"
-            context: Qt.ApplicationShortcut
-            onActivated: shell.closeModal()
-        }
+        SystemMonitorDashboard { shell: window.shell }
     }
 
 }

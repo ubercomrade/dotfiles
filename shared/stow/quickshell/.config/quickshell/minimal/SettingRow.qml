@@ -30,8 +30,8 @@ Rectangle {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 2
-            Label { text: root.title; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontLabel; font.weight: Font.DemiBold }
-            Label { visible: root.description !== ""; Layout.fillWidth: true; text: root.description; color: Theme.muted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption; wrapMode: Text.Wrap }
+            Label { text: root.title; textFormat: Text.PlainText; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontLabel; font.weight: Font.DemiBold }
+            Label { visible: root.description !== ""; Layout.fillWidth: true; text: root.description; textFormat: Text.PlainText; color: Theme.muted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption; wrapMode: Text.Wrap }
         }
         RowLayout { id: actionSlot; spacing: Theme.unit * 2 }
     }

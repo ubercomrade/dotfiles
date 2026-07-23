@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -43,8 +45,8 @@ Item {
 
     Rectangle {
         anchors.centerIn: parent
-        width: Math.min(900, parent.width - Theme.unit * 8)
-        height: Math.min(640, parent.height - Theme.unit * 8)
+        width: Math.min(Theme.overlayWidth, parent.width - Theme.unit * 8)
+        height: Math.min(640 * Theme.scale, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -65,10 +67,27 @@ Item {
             }
 
             Flickable {
+                id: shortcutFlickable
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
                 contentHeight: shortcutColumns.implicitHeight
+                focus: true
+                activeFocusOnTab: true
+
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Up)
+                        contentY = Math.max(0, contentY - Theme.rowHeight)
+                    else if (event.key === Qt.Key_Down)
+                        contentY = Math.min(Math.max(0, contentHeight - height), contentY + Theme.rowHeight)
+                    else if (event.key === Qt.Key_PageUp)
+                        contentY = Math.max(0, contentY - height)
+                    else if (event.key === Qt.Key_PageDown)
+                        contentY = Math.min(Math.max(0, contentHeight - height), contentY + height)
+                    else
+                        return
+                    event.accepted = true
+                }
 
                 Flow {
                     id: shortcutColumns
@@ -79,7 +98,7 @@ Item {
                         model: root.categories
                         delegate: Column {
                             required property string modelData
-                            width: Math.min(410, (shortcutColumns.width - Theme.unit * 5) / 2)
+                            width: Math.min(410 * Theme.scale, (shortcutColumns.width - Theme.unit * 5) / 2)
                             spacing: Theme.unit * 2
 
                             Label { text: modelData; color: Theme.accent; font.bold: true }

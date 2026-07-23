@@ -3,10 +3,15 @@ import QtQuick.Controls
 import "."
 
 Label {
+    id: root
+
     property int iconSize: 22
-    font.family: Theme.iconFamily
-    font.pixelSize: Math.round(iconSize * Theme.scale)
-    font.weight: Font.Normal
+    Accessible.ignored: true
+    font {
+        family: Theme.iconFamily
+        pixelSize: Math.round(iconSize * Theme.scale)
+        weight: Font.Normal
+    }
     color: Theme.foreground
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter

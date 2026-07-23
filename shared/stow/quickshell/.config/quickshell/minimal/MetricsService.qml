@@ -38,12 +38,13 @@ QtObject {
     property string networkCursor: ""
     property string diskCursor: ""
     property int historyLimit: 60
+    property date currentTime: new Date()
 
     readonly property string uptime: {
         if (!bootTime)
             return ""
         const started = new Date(bootTime.replace(" ", "T"))
-        const seconds = Math.max(0, Math.floor((Date.now() - started.getTime()) / 1000))
+        const seconds = Math.max(0, Math.floor((currentTime.getTime() - started.getTime()) / 1000))
         if (!isFinite(seconds))
             return ""
         const days = Math.floor(seconds / 86400)
@@ -145,6 +146,13 @@ QtObject {
         repeat: true
         running: root.active
         onTriggered: root.poll()
+    }
+
+    property Timer uptimeTimer: Timer {
+        interval: 60000
+        repeat: true
+        running: root.active
+        onTriggered: root.currentTime = new Date()
     }
 
     property Process metricsProcess: Process {

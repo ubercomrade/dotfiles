@@ -6,8 +6,8 @@ import "."
 Rectangle {
     id: root
 
-    implicitWidth: 320
-    implicitHeight: 400
+    implicitWidth: 320 * Theme.scale
+    implicitHeight: 400 * Theme.scale
     radius: Theme.radiusLarge
     color: Theme.surface
     border.width: 1
@@ -71,7 +71,7 @@ Rectangle {
         property real graphMaximum: 0
 
         Layout.fillWidth: true
-        Layout.preferredHeight: 64
+        Layout.preferredHeight: 64 * Theme.scale
         radius: Theme.radiusMedium
         color: Theme.surfaceRaised
 
@@ -81,13 +81,13 @@ Rectangle {
             spacing: Theme.unit * 3
 
             Rectangle {
-                Layout.preferredWidth: 4
+                Layout.preferredWidth: 4 * Theme.scale
                 Layout.fillHeight: true
                 radius: Theme.radiusSmall
                 color: metric.metricColor
             }
             ColumnLayout {
-                Layout.preferredWidth: 82
+                Layout.preferredWidth: 82 * Theme.scale
                 spacing: 1
                 Label { text: metric.title; color: Theme.muted; font.family: Theme.monoFamily; font.pixelSize: Theme.fontCaption }
                 Label { text: metric.value; color: Theme.foreground; font.family: Theme.monoFamily; font.pixelSize: Theme.fontLabel; font.weight: Font.DemiBold }
@@ -127,16 +127,16 @@ Rectangle {
                 }
             }
             Rectangle {
-                Layout.preferredWidth: 8
-                Layout.preferredHeight: 8
-                radius: 4
+                Layout.preferredWidth: 8 * Theme.scale
+                Layout.preferredHeight: 8 * Theme.scale
+                radius: width / 2
                 color: MetricsService.available ? Theme.success : MetricsService.active ? Theme.warning : Theme.muted
             }
         }
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 30
+            Layout.preferredHeight: 30 * Theme.scale
             visible: !MetricsService.available
             Label {
                 anchors.fill: parent

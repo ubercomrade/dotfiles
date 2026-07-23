@@ -8,7 +8,7 @@ PanelWindow {
     required property var shell
     required property var screenData
     property bool showing: false
-    property string layoutCode: {
+    readonly property string layoutCode: {
         const layout = shell.keyboardLayout.toLowerCase()
         if (layout.includes("russian"))
             return "RU"
@@ -21,7 +21,7 @@ PanelWindow {
     visible: screenData.name === shell.focusedOutput
     focusable: false
     exclusiveZone: 0
-    implicitHeight: 112
+    implicitHeight: 112 * Theme.scale
     color: "transparent"
     mask: Region {}
 
@@ -49,8 +49,8 @@ PanelWindow {
         id: card
         anchors.horizontalCenter: parent.horizontalCenter
         y: window.showing ? Theme.unit * 6 : Theme.unit * 3
-        width: 164
-        height: 64
+        width: 164 * Theme.scale
+        height: 64 * Theme.scale
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1

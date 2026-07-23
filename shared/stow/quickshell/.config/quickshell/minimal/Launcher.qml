@@ -1,16 +1,19 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
 import Quickshell.Networking
 import Quickshell.Services.UPower
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
 import "."
 
 Item {
     id: root
     required property var shell
+    focus: true
     property string section: "main"
     property string mode: "apps"
     property int currentIndex: 0
@@ -25,6 +28,8 @@ Item {
     property var bluetoothDevices: bluetoothAdapter ? bluetoothAdapter.devices.values.slice().sort((left, right) => Number(right.connected) - Number(left.connected) || Number(right.paired) - Number(left.paired) || (left.name || left.deviceName).localeCompare(right.name || right.deviceName)) : []
     property int connectedBluetoothDevices: bluetoothDevices.filter(device => device.connected).length
     property string statusMessage: ""
+
+    onVisibleEntriesChanged: currentIndex = Math.max(0, Math.min(currentIndex, visibleEntries.length - 1))
 
     function selectOffset(offset): void {
         if (visibleEntries.length === 0)
@@ -93,6 +98,15 @@ Item {
         passwordNetwork = null
     }
 
+    function handleEscape(): void {
+        if (shell.bluetoothAgent.promptType !== "none")
+            shell.bluetoothAgent.cancel()
+        else if (section !== "main")
+            closeSection()
+        else
+            shell.closeModal()
+    }
+
     function activateBluetoothDevice(device): void {
         statusMessage = ""
         if (device.connected)
@@ -137,8 +151,9 @@ Item {
         property string iconName: ""
         property string primaryText: ""
         property string secondaryText: ""
-        implicitWidth: 150
-        implicitHeight: 52
+        Accessible.name: `${primaryText}, ${secondaryText}`
+        implicitWidth: 150 * Theme.scale
+        implicitHeight: 52 * Theme.scale
         padding: Theme.unit * 2
 
         background: Rectangle {
@@ -151,8 +166,8 @@ Item {
         contentItem: RowLayout {
             spacing: Theme.unit * 2
             Rectangle {
-                Layout.preferredWidth: 28
-                Layout.preferredHeight: 28
+                Layout.preferredWidth: 28 * Theme.scale
+                Layout.preferredHeight: 28 * Theme.scale
                 radius: Theme.radiusSmall
                 color: Theme.accentMuted
                 ShellIcon {
@@ -189,8 +204,8 @@ Item {
     Rectangle {
         id: panel
         anchors.centerIn: parent
-        width: Math.min(760, parent.width - Theme.unit * 8)
-        height: Math.min(600, parent.height - Theme.unit * 8)
+        width: Math.min(Theme.launcherWidth, parent.width - Theme.unit * 8)
+        height: Math.min(Theme.launcherHeight, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -228,8 +243,8 @@ Item {
 
                 Rectangle {
                     visible: UPower.displayDevice.isLaptopBattery
-                    Layout.preferredWidth: 78
-                    Layout.preferredHeight: 52
+                    Layout.preferredWidth: 78 * Theme.scale
+                    Layout.preferredHeight: 52 * Theme.scale
                     radius: Theme.radiusMedium
                     color: Theme.surfaceRaised
 
@@ -265,9 +280,10 @@ Item {
                     onClicked: root.openSection(root.section === "bluetooth" ? "main" : "bluetooth")
                 }
                 ShellButton {
-                    Layout.preferredWidth: 52 * Theme.scale
+                    Layout.preferredWidth: Theme.iconButtonSize
                     symbol: "settings"
                     text: ""
+                    accessibleName: qsTr("Open settings")
                     onClicked: root.shell.openModal("settings")
                 }
             }
@@ -301,6 +317,8 @@ Item {
                             background: Rectangle {
                                 radius: Theme.radiusPill
                                 color: modeButton.checked ? Theme.accentMuted : modeButton.hovered ? Theme.surfaceRaised : "transparent"
+                                border.width: modeButton.activeFocus ? 2 : 0
+                                border.color: Theme.accent
                             }
                         }
                     }
@@ -311,13 +329,13 @@ Item {
                 ShellTextField {
                     id: query
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 46
+                    Layout.preferredHeight: Theme.controlHeight
                     placeholderText: root.mode === "apps" ? "Search applications" : root.mode === "run" ? "Run command" : "Search clipboard history"
                     selectByMouse: true
                     onTextChanged: root.currentIndex = 0
                     onAccepted: root.activate()
                     Component.onCompleted: forceActiveFocus()
-                    Keys.onEscapePressed: shell.closeModal()
+                    Keys.onEscapePressed: root.handleEscape()
                     Keys.onPressed: event => {
                         if (event.key === Qt.Key_Tab) {
                             root.setMode(root.mode === "apps" ? "run" : root.mode === "run" ? "clipboard" : "apps")
@@ -362,7 +380,7 @@ Item {
                         required property var modelData
                         required property int index
                         width: ListView.view.width
-                        height: 58
+                        height: Theme.rowHeight
                         highlighted: root.currentIndex === index
                         flat: true
                         onClicked: {
@@ -372,15 +390,17 @@ Item {
                         background: Rectangle {
                             radius: Theme.radiusMedium
                             color: resultButton.highlighted ? Theme.accentMuted : resultButton.hovered ? Theme.surfaceRaised : "transparent"
+                            border.width: resultButton.activeFocus ? 2 : 0
+                            border.color: Theme.accent
                         }
                         contentItem: RowLayout {
                             spacing: Theme.unit * 3
                             Image {
                                 source: Quickshell.iconPath(root.mode === "apps" ? modelData.entry.icon : "edit-paste", "application-x-executable")
-                                sourceSize.width: 28
-                                sourceSize.height: 28
-                                Layout.preferredWidth: 28
-                                Layout.preferredHeight: 28
+                                sourceSize.width: Math.round(28 * Theme.scale)
+                                sourceSize.height: Math.round(28 * Theme.scale)
+                                Layout.preferredWidth: 28 * Theme.scale
+                                Layout.preferredHeight: 28 * Theme.scale
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
@@ -388,15 +408,17 @@ Item {
                                 Label {
                                     Layout.fillWidth: true
                                     text: root.mode === "apps" ? modelData.entry.name : modelData
+                                    textFormat: Text.PlainText
                                     color: Theme.foreground
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontLabel
                                     elide: Text.ElideRight
                                 }
                                 Label {
-                                    visible: root.mode === "apps" && (modelData.entry.genericName || modelData.entry.comment)
+                                    visible: root.mode === "apps" && modelData.entry && (modelData.entry.genericName || modelData.entry.comment)
                                     Layout.fillWidth: true
-                                    text: modelData.entry.genericName || modelData.entry.comment
+                                    text: root.mode === "apps" && modelData.entry ? modelData.entry.genericName || modelData.entry.comment : ""
+                                    textFormat: Text.PlainText
                                     color: Theme.muted
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontCaption
@@ -423,11 +445,12 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Button { text: "Back"; flat: true; onClicked: root.closeSection() }
+                    ShellButton { text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
                     Label { text: "Wi-Fi networks"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Item { Layout.fillWidth: true }
                     ShellToggle {
                         text: Networking.wifiEnabled ? "On" : "Off"
+                        accessibleName: qsTr("Wi-Fi")
                         checked: Networking.wifiEnabled
                         enabled: Networking.wifiHardwareEnabled
                         onToggled: Networking.wifiEnabled = checked
@@ -454,18 +477,20 @@ Item {
                         id: networkButton
                         required property var modelData
                         width: ListView.view.width
-                        height: 58
+                        height: Theme.rowHeight
                         flat: true
                         onClicked: root.activateNetwork(modelData)
                         background: Rectangle {
                             radius: Theme.radiusMedium
                             color: networkButton.hovered ? Theme.surfaceRaised : modelData.connected ? Theme.accentMuted : "transparent"
+                            border.width: networkButton.activeFocus ? 2 : 0
+                            border.color: Theme.accent
                         }
                         contentItem: RowLayout {
                             spacing: Theme.unit * 3
                             Rectangle {
-                                Layout.preferredWidth: 28
-                                Layout.preferredHeight: 28
+                                Layout.preferredWidth: 28 * Theme.scale
+                                Layout.preferredHeight: 28 * Theme.scale
                                 radius: Theme.radiusSmall
                                 color: Theme.accentMuted
                                 ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "wifi" : "network_wifi"; color: Theme.accent; iconSize: 19 }
@@ -473,7 +498,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 0
-                                Label { text: modelData.name; color: Theme.foreground; font.weight: Font.DemiBold }
+                                Label { text: modelData.name; textFormat: Text.PlainText; color: Theme.foreground; font.weight: Font.DemiBold }
                                 Label {
                                     text: modelData.connected ? "Connected" : modelData.stateChanging ? "Connecting..." : modelData.known ? "Saved network" : modelData.security === WifiSecurityType.Open || modelData.security === WifiSecurityType.Owe ? "Open network" : root.supportsPsk(modelData) ? "Password required" : "Unsupported security"
                                     color: modelData.connected ? Theme.success : Theme.muted
@@ -494,11 +519,12 @@ Item {
                 Rectangle {
                     visible: root.passwordNetwork !== null
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 92
+                    Layout.preferredHeight: passwordRow.implicitHeight + Theme.unit * 6
                     radius: Theme.radiusMedium
                     color: Theme.surfaceRaised
 
                     RowLayout {
+                        id: passwordRow
                         anchors.fill: parent
                         anchors.margins: Theme.unit * 3
                         spacing: Theme.unit * 2
@@ -513,8 +539,8 @@ Item {
                                 onAccepted: root.connectWithPassword()
                             }
                         }
-                        Button { text: "Cancel"; onClicked: { wifiPassword.text = ""; root.passwordNetwork = null } }
-                        Button { text: "Connect"; enabled: wifiPassword.text.length > 0; onClicked: root.connectWithPassword() }
+                        ShellButton { text: qsTr("Cancel"); onClicked: { wifiPassword.text = ""; root.passwordNetwork = null } }
+                        ShellButton { text: qsTr("Connect"); primary: true; enabled: wifiPassword.text.length > 0; onClicked: root.connectWithPassword() }
                     }
                 }
                 Label { visible: root.statusMessage !== ""; text: root.statusMessage; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
@@ -528,12 +554,13 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Button { text: "Back"; flat: true; onClicked: root.closeSection() }
+                    ShellButton { text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
                     Label { text: "Bluetooth devices"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Item { Layout.fillWidth: true }
                     Label { visible: root.bluetoothAdapter?.discovering ?? false; text: "Scanning..."; color: Theme.accent }
                     ShellToggle {
                         text: root.bluetoothAdapter?.enabled ? "On" : "Off"
+                        accessibleName: qsTr("Bluetooth")
                         checked: root.bluetoothAdapter?.enabled ?? false
                         enabled: root.bluetoothAdapter !== null
                         onToggled: root.bluetoothAdapter.enabled = checked
@@ -560,19 +587,21 @@ Item {
                         id: deviceButton
                         required property var modelData
                         width: ListView.view.width
-                        height: 60
+                        height: Theme.rowHeight
                         flat: true
                         enabled: !shell.bluetoothAgent.busy || modelData === shell.bluetoothAgent.pendingDevice
                         onClicked: root.activateBluetoothDevice(modelData)
                         background: Rectangle {
                             radius: Theme.radiusMedium
                             color: deviceButton.hovered ? Theme.surfaceRaised : modelData.connected ? Theme.accentMuted : "transparent"
+                            border.width: deviceButton.activeFocus ? 2 : 0
+                            border.color: Theme.accent
                         }
                         contentItem: RowLayout {
                             spacing: Theme.unit * 3
                             Rectangle {
-                                Layout.preferredWidth: 30
-                                Layout.preferredHeight: 30
+                                Layout.preferredWidth: 30 * Theme.scale
+                                Layout.preferredHeight: 30 * Theme.scale
                                 radius: Theme.radiusSmall
                                 color: Theme.accentMuted
                                 ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "bluetooth_connected" : "bluetooth"; color: Theme.accent; iconSize: 19 }
@@ -580,7 +609,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 0
-                                Label { text: modelData.name || modelData.deviceName || modelData.address; color: Theme.foreground; font.weight: Font.DemiBold }
+                                Label { text: modelData.name || modelData.deviceName || modelData.address; textFormat: Text.PlainText; color: Theme.foreground; font.weight: Font.DemiBold }
                                 Label {
                                     text: modelData.connected ? "Connected" : modelData.pairing ? "Pairing..." : modelData.state === BluetoothDeviceState.Connecting ? "Connecting..." : modelData.paired ? "Paired" : "New device"
                                     color: modelData.connected ? Theme.success : Theme.muted
@@ -608,14 +637,29 @@ Item {
         }
 
         Rectangle {
+            id: bluetoothPrompt
             anchors.fill: parent
             visible: shell.bluetoothAgent.promptType !== "none"
+            focus: visible
             color: Theme.scrim
             z: 20
 
+            onVisibleChanged: {
+                if (!visible)
+                    return
+                if (bluetoothCode.visible)
+                    Qt.callLater(bluetoothCode.forceActiveFocus)
+                else if (continueButton.visible)
+                    Qt.callLater(continueButton.forceActiveFocus)
+                else
+                    Qt.callLater(cancelBluetoothButton.forceActiveFocus)
+            }
+
+            MouseArea { anchors.fill: parent }
+
             Rectangle {
                 anchors.centerIn: parent
-                width: Math.min(440, parent.width - Theme.unit * 12)
+                width: Math.min(440 * Theme.scale, parent.width - Theme.unit * 12)
                 implicitHeight: promptColumn.implicitHeight + Theme.unit * 10
                 radius: Theme.radiusLarge
                 color: Theme.surfaceRaised
@@ -648,9 +692,11 @@ Item {
                     }
                     RowLayout {
                         Layout.alignment: Qt.AlignRight
-                        Button { text: "Cancel"; onClicked: { bluetoothCode.text = ""; shell.bluetoothAgent.cancel() } }
-                        Button {
+                        ShellButton { id: cancelBluetoothButton; text: qsTr("Cancel"); onClicked: { bluetoothCode.text = ""; shell.bluetoothAgent.cancel() } }
+                        ShellButton {
+                            id: continueButton
                             text: "Continue"
+                            primary: true
                             visible: shell.bluetoothAgent.promptType !== "display"
                             enabled: shell.bluetoothAgent.promptType === "confirm" || shell.bluetoothAgent.promptType === "authorize" || bluetoothCode.text.length > 0
                             onClicked: {
@@ -664,12 +710,5 @@ Item {
         }
     }
 
-    Keys.onEscapePressed: {
-        if (shell.bluetoothAgent.promptType !== "none")
-            shell.bluetoothAgent.cancel()
-        else if (root.section !== "main")
-            root.closeSection()
-        else
-            shell.closeModal()
-    }
+    Keys.onEscapePressed: root.handleEscape()
 }

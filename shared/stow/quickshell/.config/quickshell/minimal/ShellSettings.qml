@@ -6,7 +6,7 @@ import QtQuick
 QtObject {
     id: root
 
-    property int version: 2
+    property int version: 3
     property string accentName: "blue"
     property real interfaceScale: 1.0
     property bool reduceMotion: false
@@ -15,7 +15,6 @@ QtObject {
     property int monitorRightMargin: 24
     property int monitorBottomMargin: 24
     property string settingsSection: "network"
-    property var outputScales: ({})
     property bool loading: true
 
     readonly property color accentColor: {
@@ -24,7 +23,7 @@ QtObject {
         case "cyan": return "#63d8e8"
         case "green": return "#83d6a2"
         case "rose": return "#f49ab8"
-        default: return "#8ab4f8"
+        default: return "#89b4fa"
         }
     }
 
@@ -41,7 +40,6 @@ QtObject {
             monitorRightMargin = data.monitorRightMargin ?? monitorRightMargin
             monitorBottomMargin = data.monitorBottomMargin ?? monitorBottomMargin
             settingsSection = data.settingsSection ?? settingsSection
-            outputScales = data.outputScales ?? outputScales
         } catch (_) {}
         loading = false
         if (migrated)
@@ -63,8 +61,7 @@ QtObject {
             monitorClickThrough,
             monitorRightMargin,
             monitorBottomMargin,
-            settingsSection,
-            outputScales
+            settingsSection
         }, null, 2))
     }
 
@@ -76,7 +73,6 @@ QtObject {
     onMonitorRightMarginChanged: scheduleSave()
     onMonitorBottomMarginChanged: scheduleSave()
     onSettingsSectionChanged: scheduleSave()
-    onOutputScalesChanged: scheduleSave()
 
     property Timer saveTimer: Timer {
         interval: 180

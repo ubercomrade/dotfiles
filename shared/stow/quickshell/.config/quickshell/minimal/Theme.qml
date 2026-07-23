@@ -3,6 +3,8 @@ import QtQuick
 import "."
 
 QtObject {
+    id: root
+
     readonly property color background: "#0b1020"
     readonly property color surface: "#121a2b"
     readonly property color surfaceRaised: "#19243a"
@@ -29,6 +31,14 @@ QtObject {
     readonly property int radiusPill: 999
     readonly property int controlHeight: Math.round(44 * scale)
     readonly property int rowHeight: Math.round(58 * scale)
+    readonly property int cardHeight: Math.round(80 * scale)
+    readonly property int iconButtonSize: Math.round(44 * scale)
+    readonly property int launcherWidth: Math.round(760 * scale)
+    readonly property int launcherHeight: Math.round(600 * scale)
+    readonly property int settingsWidth: Math.round(1060 * scale)
+    readonly property int settingsHeight: Math.round(720 * scale)
+    readonly property int overlayWidth: Math.round(900 * scale)
+    readonly property int overlayHeight: Math.round(650 * scale)
     readonly property string fontFamily: "Noto Sans"
     readonly property string monoFamily: "Noto Sans Mono"
     readonly property string iconFamily: "Material Symbols Rounded"

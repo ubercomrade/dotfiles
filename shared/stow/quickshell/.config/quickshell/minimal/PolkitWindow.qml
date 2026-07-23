@@ -1,7 +1,7 @@
-import Quickshell
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import Quickshell
 import "."
 
 PanelWindow {
@@ -10,15 +10,19 @@ PanelWindow {
     required property var screenData
     required property var flow
     screen: screenData
-    visible: flow !== null && !flow.isCompleted && (shell.focusedOutput === "" || screenData.name === shell.focusedOutput)
+    visible: flow !== null && !flow.isCompleted && screenData.name === shell.focusedOutput
     focusable: visible
     exclusiveZone: 0
     color: Theme.scrim
     anchors { top: true; bottom: true; left: true; right: true }
 
     onVisibleChanged: {
-        if (visible)
-            Qt.callLater(response.forceActiveFocus)
+        if (visible) {
+            if (flow?.isResponseRequired)
+                Qt.callLater(response.forceActiveFocus)
+            else
+                Qt.callLater(authenticateButton.forceActiveFocus)
+        }
         else
             response.text = ""
     }
@@ -54,18 +58,24 @@ PanelWindow {
                 echoMode: flow?.responseVisible ? TextInput.Normal : TextInput.Password
                 selectByMouse: true
                 onAccepted: submit()
-                Component.onCompleted: forceActiveFocus()
                 function submit(): void {
-                    if (!flow || !text.length) return
+                    if (!flow || (flow.isResponseRequired && !text.length)) return
                     flow.submit(text)
                     text = ""
                 }
             }
             RowLayout {
                 Layout.alignment: Qt.AlignRight
-                ShellButton { text: "Cancel"; onClicked: { response.text = ""; flow.cancelAuthenticationRequest() } }
-                ShellButton { text: "Authenticate"; symbol: "lock_open"; primary: true; enabled: !(flow?.isResponseRequired ?? true) || response.text.length > 0; onClicked: response.submit() }
+                ShellButton { text: qsTr("Cancel"); onClicked: { response.text = ""; flow.cancelAuthenticationRequest() } }
+                ShellButton { id: authenticateButton; text: qsTr("Authenticate"); symbol: "lock_open"; primary: true; enabled: !(flow?.isResponseRequired ?? true) || response.text.length > 0; onClicked: response.submit() }
             }
         }
+    }
+
+    Shortcut {
+        enabled: window.visible
+        sequence: "Escape"
+        context: Qt.WindowShortcut
+        onActivated: flow.cancelAuthenticationRequest()
     }
 }
