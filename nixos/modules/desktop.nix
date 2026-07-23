@@ -11,6 +11,7 @@
   networking.networkmanager.enable = true;
   hardware.bluetooth.enable = true;
   services.upower.enable = true;
+  services.power-profiles-daemon.enable = true;
 
   security.polkit.enable = true;
   services.gnome.gnome-keyring.enable = true;
@@ -33,5 +34,5 @@
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
   };
-  fonts.packages = [ pkgs.noto-fonts ];
+  fonts.packages = [ pkgs.cantarell-fonts ];
 }

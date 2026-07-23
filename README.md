@@ -136,16 +136,16 @@ The complete Stow deployment manages these packages:
 | Package | Main target |
 | --- | --- |
 | `niri` | `~/.config/niri/config.kdl` |
-| `quickshell` | `~/.config/quickshell/minimal/` |
+| `quickshell` | `~/.config/quickshell/niri-hub/` |
 | `mako` | `~/.config/mako/config` |
 | `portal` | `~/.config/xdg-desktop-portal/niri-portals.conf` |
-| `gtk` | GTK dark appearance and Noto fonts |
+| `gtk` | GTK dark appearance and Cantarell fonts |
 | `kitty` | Kitty configuration |
 | `mime` | Default application associations |
 | `nvim` | Neovim and LazyVim configuration |
 | `systemd` | Restartable Quickshell user service |
 
-The `niri` preset deploys the Niri session, Quickshell, Mako, GTK, and portal configuration. Quickshell provides a focused-output launcher on `Super+D`, system monitoring on `Super+Shift+M`, a shortcut overlay on `Super+Shift+/`, layout OSD, and the Polkit authentication agent without a top bar. The launcher provides application search, shell commands, clipboard history, Wi-Fi and Bluetooth controls, battery status, and session power actions.
+The `niri` preset deploys the Niri session, Quickshell, Mako, GTK, and portal configuration. Niri Hub is a focused-output GNOME-like launcher and command center: `Super+D` opens applications and system pages, while `Super+V` opens clipboard history. It includes Apps, Clipboard, Wi-Fi, Bluetooth, Battery, and power actions, plus system monitoring on `Super+Shift+M`, a shortcut overlay on `Super+Shift+/`, layout OSD, and the Polkit authentication agent without a top bar. The systemd user services are `quickshell.service` and `cliphist.service`.
 
 ## Host customization
 

@@ -32,8 +32,8 @@ in
     swaylock
     swayidle
     xdg-user-dirs
-    material-symbols
     adwaita-icon-theme
+    cantarell-fonts
     dgop
     pixi
     uv
@@ -59,6 +59,7 @@ in
     jq
     lua
     qt6Packages.qtdeclarative
+    qt6Packages.qtsvg
   ];
 
   systemd.user.services = {
@@ -70,7 +71,7 @@ in
         Requisite = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = "${pkgs.quickshell}/bin/qs -c minimal";
+        ExecStart = "${pkgs.quickshell}/bin/qs -c niri-hub";
         Restart = "on-failure";
         RestartSec = 1;
       };
@@ -94,7 +95,7 @@ in
   xdg.configFile = {
     "niri/config.kdl".source = "${shared}/niri/.config/niri/config.kdl";
     "niri/host.kdl".source = "${host}/.config/niri/host.kdl";
-    "quickshell/minimal".source = "${shared}/quickshell/.config/quickshell/minimal";
+    "quickshell/niri-hub".source = "${shared}/quickshell/.config/quickshell/niri-hub";
     "kitty/kitty.conf".source = "${shared}/kitty/.config/kitty/kitty.conf";
     "mako/config".source = "${shared}/mako/.config/mako/config";
     "gtk-3.0/settings.ini".source = "${shared}/gtk/.config/gtk-3.0/settings.ini";
@@ -106,7 +107,7 @@ in
 
   dconf.settings."org/gnome/desktop/interface" = {
     color-scheme = "prefer-dark";
-    font-name = "Noto Sans 11";
+    font-name = "Cantarell 11";
   };
 
   programs.home-manager.enable = true;

@@ -232,10 +232,7 @@ if $install_full || $install_niri || $install_config; then
     mkdir -p "$niri_dir"
     ln -sfn "$host_dir/arch/stow/.config/niri/host.kdl" "$host_link"
 
-    user_services=(quickshell.service)
-    if systemctl --user cat cliphist.service >/dev/null 2>&1; then
-        user_services+=(cliphist.service)
-    fi
+    user_services=(quickshell.service cliphist.service)
 
     systemctl --user daemon-reload
     systemctl --user enable "${user_services[@]}"
@@ -243,7 +240,7 @@ if $install_full || $install_niri || $install_config; then
         if command -v qs >/dev/null; then
             systemctl --user restart quickshell.service
         fi
-        if ((${#user_services[@]} > 1)) && command -v wl-paste >/dev/null && command -v cliphist >/dev/null; then
+        if command -v wl-paste >/dev/null && command -v cliphist >/dev/null; then
             systemctl --user start cliphist.service
         fi
     fi

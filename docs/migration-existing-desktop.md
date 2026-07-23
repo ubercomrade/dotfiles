@@ -38,7 +38,7 @@ niri validate --config "$HOME/.config/niri/config.kdl"
 
 The package action performs a full Arch system upgrade with `pacman -Syu`, then installs missing Niri runtime packages. The config action does not manage Hyprland, Sway, Kitty, Neovim, MIME, or other application configuration outside the limited Niri profile.
 
-The limited deployment adds `~/.config/quickshell/minimal` beside other Quickshell profiles. It does not remove them.
+The limited deployment adds `~/.config/quickshell/niri-hub` beside other Quickshell profiles. It does not remove them. On first launch, Niri Hub imports compatible appearance and monitor settings from the old `minimal-shell` runtime state when its own state file does not exist.
 
 ## Test the session
 
@@ -48,7 +48,9 @@ Check at least:
 
 - internal and external outputs;
 - `Ctrl+Space` keyboard-layout switching and configured bindings;
-- `Super+D` launcher modes for applications, commands, and clipboard history;
+- `Super+D` Niri Hub application search and system pages;
+- `Super+V` clipboard history, refresh, copy, and delete, with `cliphist.service` active;
+- Wi-Fi and Bluetooth discovery, connection, and pairing prompts;
 - `Super+Shift+M` desktop system monitor;
 - `Super+Shift+/` shortcut overlay and Escape dismissal;
 - `Super+L` locking and unlock recovery;
@@ -100,7 +102,7 @@ esac
 stow --delete --no-folding \
   --dir="$PWD/shared/stow" \
   --target="$HOME" \
-  niri quickshell mako gtk portal
+   niri quickshell mako gtk portal systemd
 ```
 
 Restore conflicting files from the backup as needed. After verifying the rollback, remove `$state_dir/migration-backup`. Pacman packages and tools installed outside Stow remain installed and should be reviewed separately before removal.

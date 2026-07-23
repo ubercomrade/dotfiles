@@ -1,4 +1,5 @@
-module minimal
+module NiriHub
+singleton LauncherState 1.0 LauncherState.qml
 singleton MetricsService 1.0 MetricsService.qml
 singleton ShellSettings 1.0 ShellSettings.qml
 singleton Theme 1.0 Theme.qml

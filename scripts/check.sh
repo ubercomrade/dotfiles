@@ -46,7 +46,8 @@ elif command -v qmllint >/dev/null; then
     qmllint_bin=$(command -v qmllint)
 fi
 if [[ -n "$qmllint_bin" ]]; then
-    if ! qml_output=$("$qmllint_bin" "$repo_dir"/shared/stow/quickshell/.config/quickshell/minimal/*.qml 2>&1); then
+    mapfile -d '' qml_files < <(find "$repo_dir/shared/stow/quickshell/.config/quickshell/niri-hub" -type f -name '*.qml' -print0)
+    if ! qml_output=$("$qmllint_bin" -I "$repo_dir/shared/stow/quickshell/.config/quickshell/niri-hub" "${qml_files[@]}" 2>&1); then
         if [[ -n "$qml_output" ]]; then
             printf '%s\n' "$qml_output" >&2
             exit 1
@@ -57,30 +58,43 @@ else
     require_or_skip "QML validation"
 fi
 
-grep -q 'target: "launcher"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-grep -q 'target: "shortcuts"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-! grep -q 'target: "settings"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-grep -q 'target: "monitor"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-grep -q 'event-stream' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-grep -q 'LayoutOsd' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-grep -q 'PolkitAgent' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
-grep -q 'Material Symbols Rounded' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Theme.qml"
-grep -q 'dgop.*meta' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/MetricsService.qml"
-grep -q 'Quickshell.Networking' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
-grep -q 'Quickshell.Bluetooth' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
+hub_dir="$repo_dir/shared/stow/quickshell/.config/quickshell/niri-hub"
+grep -q 'target: "launcher"' "$hub_dir/shell.qml"
+grep -q 'function clipboard' "$hub_dir/shell.qml"
+grep -q 'function wifi' "$hub_dir/shell.qml"
+grep -q 'function bluetooth' "$hub_dir/shell.qml"
+grep -q 'function battery' "$hub_dir/shell.qml"
+grep -q 'target: "shortcuts"' "$hub_dir/shell.qml"
+! grep -q 'target: "settings"' "$hub_dir/shell.qml"
+grep -q 'target: "monitor"' "$hub_dir/shell.qml"
+grep -q 'event-stream' "$hub_dir/shell.qml"
+grep -q 'LayoutOsd' "$hub_dir/shell.qml"
+grep -q 'PolkitAgent' "$hub_dir/shell.qml"
+grep -q 'IconImage' "$hub_dir/ShellIcon.qml"
+grep -q 'IconTheme Adwaita' "$hub_dir/shell.qml"
+grep -q 'dgop.*meta' "$hub_dir/MetricsService.qml"
+grep -q 'Quickshell.Networking' "$hub_dir/Launcher.qml"
+grep -q 'Quickshell.Bluetooth' "$hub_dir/Launcher.qml"
+grep -q 'Quickshell.Services.UPower' "$hub_dir/Launcher.qml"
 grep -q '^Restart=on-failure$' "$repo_dir/shared/stow/systemd/.config/systemd/user/quickshell.service"
 ! grep -q 'spawn-at-startup "qs"' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'skip-at-startup' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
-! grep -q 'Bar {' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q '^ExecStart=/usr/bin/qs -c niri-hub$' "$repo_dir/shared/stow/systemd/.config/systemd/user/quickshell.service"
+grep -q '^ExecStart=/usr/bin/wl-paste --watch /usr/bin/cliphist store$' "$repo_dir/shared/stow/systemd/.config/systemd/user/cliphist.service"
+! grep -q 'Bar {' "$hub_dir/shell.qml"
 grep -q 'Ctrl+Space.*switch-layout' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'Mod+Shift+Slash.*shortcuts' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
+grep -q 'Mod+V.*launcher.*clipboard' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 ! grep -q 'Mod+Comma.*settings' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'Mod+Shift+M.*monitor' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q '^dgop$' "$repo_dir/arch/packages/niri.txt"
-grep -q '^ttf-material-symbols-variable$' "$repo_dir/arch/packages/niri.txt"
+grep -q '^cantarell-fonts$' "$repo_dir/arch/packages/niri.txt"
+grep -q '^adwaita-icon-theme$' "$repo_dir/arch/packages/niri.txt"
 grep -q '^nautilus$' "$repo_dir/arch/packages/niri.txt"
 ! grep -Eq 'dolphin|kate|okular|gwenview|ark|kcalc|breeze|polkit-kde' "$repo_dir/arch/packages/common.txt" "$repo_dir/arch/packages/niri.txt" "$repo_dir/nixos/modules/home.nix" "$repo_dir/shared/stow/mime/.config/mimeapps.list"
 [[ ! -e "$repo_dir/shared/stow/kde" && ! -e "$repo_dir/shared/stow/systemd/.config/systemd/user/polkit-kde-agent.service" ]]
+grep -q 'quickshell/niri-hub' "$repo_dir/nixos/modules/home.nix"
+grep -q 'qs -c niri-hub' "$repo_dir/nixos/modules/home.nix"
 
 if command -v stow >/dev/null; then
     target=$(mktemp -d)

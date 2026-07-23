@@ -14,9 +14,9 @@ Item {
     id: root
     required property var shell
     focus: true
-    property string section: "main"
-    property string mode: "apps"
-    property int currentIndex: 0
+    property string section: LauncherState.page === "apps" || LauncherState.page === "clipboard" ? "main" : LauncherState.page
+    property string mode: LauncherState.page === "clipboard" ? "clipboard" : "apps"
+    property int currentIndex: LauncherState.selectedIndex
     property var clipboardEntries: []
     property var appEntries: shell.applicationResults(query.text)
     property var visibleEntries: mode === "apps" ? appEntries : mode === "clipboard" ? clipboardEntries.filter(entry => entry.toLowerCase().includes(query.text.toLowerCase())) : []
@@ -28,9 +28,11 @@ Item {
     property var bluetoothDevices: bluetoothAdapter ? bluetoothAdapter.devices.values.slice().sort((left, right) => Number(right.connected) - Number(left.connected) || Number(right.paired) - Number(left.paired) || (left.name || left.deviceName).localeCompare(right.name || right.deviceName)) : []
     property int connectedBluetoothDevices: bluetoothDevices.filter(device => device.connected).length
     property string statusMessage: ""
-    property string pendingPowerAction: ""
+    property string pendingPowerAction: LauncherState.pendingPowerAction
 
     onVisibleEntriesChanged: currentIndex = Math.max(0, Math.min(currentIndex, visibleEntries.length - 1))
+    onCurrentIndexChanged: LauncherState.selectedIndex = currentIndex
+    onPendingPowerActionChanged: LauncherState.pendingPowerAction = pendingPowerAction
 
     function selectOffset(offset): void {
         if (visibleEntries.length === 0)
@@ -51,6 +53,7 @@ Item {
     function setMode(nextMode): void {
         section = "main"
         mode = nextMode
+        LauncherState.page = nextMode === "clipboard" ? "clipboard" : "apps"
         currentIndex = 0
         query.forceActiveFocus()
         if (nextMode === "clipboard")
@@ -59,6 +62,7 @@ Item {
 
     function openSection(nextSection): void {
         section = nextSection
+        LauncherState.page = nextSection
         statusMessage = ""
         passwordNetwork = null
         wifiPassword.text = ""
@@ -66,6 +70,7 @@ Item {
 
     function closeSection(): void {
         section = "main"
+        LauncherState.page = "apps"
         statusMessage = ""
         passwordNetwork = null
         wifiPassword.text = ""
@@ -104,8 +109,14 @@ Item {
             pendingPowerAction = ""
         else if (shell.bluetoothAgent.promptType !== "none")
             shell.bluetoothAgent.cancel()
+        else if (passwordNetwork !== null) {
+            passwordNetwork = null
+            wifiPassword.text = ""
+        }
         else if (section !== "main")
             closeSection()
+        else if (query.text !== "")
+            query.text = ""
         else
             shell.closeModal()
     }
@@ -225,7 +236,7 @@ Item {
 
     component BatteryIndicator: Rectangle {
         id: batteryIndicator
-        readonly property real level: Math.max(0, Math.min(1, UPower.displayDevice.percentage))
+        readonly property real level: Math.max(0, Math.min(1, UPower.displayDevice.percentage / 100))
         readonly property color fillColor: level <= 0.15 ? Theme.danger : UPower.onBattery ? Theme.accent : Theme.success
 
         Accessible.name: qsTr("Battery %1 percent").arg(Math.round(level * 100))
@@ -303,7 +314,9 @@ Item {
 
     Rectangle {
         id: panel
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: Math.round(100 * Theme.scale)
         width: Math.min(Theme.launcherWidth, parent.width - Theme.unit * 8)
         height: Math.min(Theme.launcherHeight, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
@@ -343,6 +356,10 @@ Item {
 
                 BatteryIndicator {
                     visible: UPower.displayDevice.isLaptopBattery
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.openSection("battery")
+                    }
                 }
 
                 StatusButton {
@@ -436,7 +453,28 @@ Item {
                     Component.onCompleted: forceActiveFocus()
                     Keys.onEscapePressed: root.handleEscape()
                     Keys.onPressed: event => {
-                        if (event.key === Qt.Key_Tab) {
+                        if (event.modifiers & Qt.ControlModifier && event.key === Qt.Key_V) {
+                            root.setMode("clipboard")
+                            event.accepted = true
+                        } else if (event.modifiers & Qt.ControlModifier && event.key === Qt.Key_W) {
+                            root.openSection("wifi")
+                            event.accepted = true
+                        } else if (event.modifiers & Qt.ControlModifier && event.key === Qt.Key_B) {
+                            root.openSection("bluetooth")
+                            event.accepted = true
+                        } else if (event.modifiers & Qt.ControlModifier && event.key === Qt.Key_L) {
+                            query.forceActiveFocus()
+                            event.accepted = true
+                        } else if (event.modifiers & Qt.ControlModifier && event.key === Qt.Key_R) {
+                            if (root.mode === "clipboard")
+                                clipboardProcess.running = true
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Delete && root.mode === "clipboard") {
+                            const id = String(root.visibleEntries[root.currentIndex] || "").match(/^\d+/)?.[0] || ""
+                            shell.clipboardService.remove(id)
+                            clipboardProcess.running = true
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Tab) {
                             root.setMode(root.mode === "apps" ? "run" : root.mode === "run" ? "clipboard" : "apps")
                             event.accepted = true
                         } else if (event.key === Qt.Key_Backtab) {
@@ -731,6 +769,39 @@ Item {
                     color: shell.bluetoothAgent.statusMessage.includes("failed") || shell.bluetoothAgent.statusMessage.includes("stopped") ? Theme.danger : Theme.muted
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
+                }
+            }
+
+            ColumnLayout {
+                visible: root.section === "battery" && UPower.displayDevice.isLaptopBattery
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: Theme.unit * 3
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    ShellButton { text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
+                    Label { text: qsTr("Battery"); color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("%1% charged").arg(Math.round(UPower.displayDevice.percentage || 0))
+                    color: Theme.foreground
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontDisplay
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: UPower.onBattery ? qsTr("Discharging") : qsTr("Charging or fully charged")
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                }
+                Label {
+                    Layout.fillWidth: true
+                    visible: UPower.displayDevice.timeToEmpty > 0 || UPower.displayDevice.timeToFull > 0
+                    text: UPower.onBattery ? qsTr("%1 remaining").arg(Math.round(UPower.displayDevice.timeToEmpty / 60) + qsTr(" minutes")) : qsTr("%1 until full").arg(Math.round(UPower.displayDevice.timeToFull / 60) + qsTr(" minutes"))
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
                 }
             }
         }

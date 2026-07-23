@@ -1,10 +1,12 @@
 pragma ComponentBehavior: Bound
+//@ pragma IconTheme Adwaita
 
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Polkit
 import "."
+import "services"
 
 Scope {
     id: root
@@ -18,6 +20,18 @@ Scope {
     readonly property string keyboardLayout: keyboardLayouts[keyboardLayoutIndex] || "Unknown"
     property alias bluetoothAgent: btAgent
     property alias polkitFlow: polkitAgent.flow
+    property alias applicationService: applicationService
+    property alias clipboardService: clipboardService
+    property alias powerService: powerService
+
+    function applicationResults(query): var { return applicationService.results(query) }
+    function launch(entry): void { applicationService.launch(entry); closeModal() }
+    function runCommand(command): void { applicationService.runCommand(command); closeModal() }
+    function copyHistory(entry): void {
+        const id = String(entry).match(/^\d+/)?.[0] || ""
+        clipboardService.copy(id)
+        closeModal()
+    }
 
     function openModal(nextModal): void {
         pendingModal = nextModal
@@ -33,54 +47,20 @@ Scope {
     function closeModal(): void {
         if (btAgent.promptType !== "none")
             btAgent.cancel()
+        if (modal === "launcher")
+            LauncherState.reset()
         modal = "none"
         pendingModal = "none"
-    }
-
-    function applicationResults(query): var {
-        const terms = query.toLowerCase().trim().split(/\s+/).filter(term => term.length)
-        return DesktopEntries.applications.values.map(entry => {
-            const haystack = [entry.name, entry.genericName, entry.comment, entry.id, entry.keywords.join(" ")].join(" ").toLowerCase()
-            let score = 0
-            let offset = 0
-            for (const term of terms) {
-                const index = haystack.indexOf(term, offset)
-                if (index < 0)
-                    return null
-                score += index === 0 || haystack[index - 1] === " " ? 100 : 10
-                score -= index
-                offset = index + term.length
-            }
-            return { entry, score }
-        }).filter(entry => entry !== null).sort((left, right) => right.score - left.score || left.entry.name.localeCompare(right.entry.name))
-    }
-
-    function launch(entry): void {
-        if (!entry)
-            return
-        if (entry.runInTerminal) {
-            Quickshell.execDetached({ command: ["kitty", "--"].concat(entry.command), workingDirectory: entry.workingDirectory })
-        } else {
-            entry.execute()
-        }
-        closeModal()
-    }
-
-    function runCommand(command): void {
-        Quickshell.execDetached(["sh", "-c", command])
-        closeModal()
-    }
-
-    function copyHistory(entry): void {
-        if (!entry)
-            return
-        Quickshell.execDetached(["sh", "-c", "printf '%s' \"$1\" | cliphist decode | wl-copy", "sh", entry])
-        closeModal()
     }
 
     IpcHandler {
         target: "launcher"
         function toggle(): void { root.modal === "launcher" ? root.closeModal() : root.openModal("launcher") }
+        function apps(): void { LauncherState.page = "apps"; root.openModal("launcher") }
+        function clipboard(): void { LauncherState.page = "clipboard"; root.openModal("launcher") }
+        function wifi(): void { LauncherState.page = "wifi"; root.openModal("launcher") }
+        function bluetooth(): void { LauncherState.page = "bluetooth"; root.openModal("launcher") }
+        function battery(): void { LauncherState.page = "battery"; root.openModal("launcher") }
     }
     IpcHandler {
         target: "monitor"
@@ -92,9 +72,12 @@ Scope {
     BluetoothAgent {
         id: btAgent
     }
+    ApplicationService { id: applicationService }
+    ClipboardService { id: clipboardService }
+    PowerService { id: powerService }
     PolkitAgent {
         id: polkitAgent
-        path: "/org/quickshell/MinimalShell/PolkitAgent"
+        path: "/org/quickshell/NiriHub/PolkitAgent"
     }
     Connections {
         target: btAgent

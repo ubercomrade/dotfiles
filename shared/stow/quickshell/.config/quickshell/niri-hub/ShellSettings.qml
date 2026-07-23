@@ -6,7 +6,7 @@ import QtQuick
 QtObject {
     id: root
 
-    property int version: 3
+    property int version: 4
     property string accentName: "blue"
     property real interfaceScale: 1.0
     property bool reduceMotion: false
@@ -26,18 +26,22 @@ QtObject {
         }
     }
 
+    function apply(data): void {
+        accentName = data.accentName ?? accentName
+        interfaceScale = data.interfaceScale ?? interfaceScale
+        reduceMotion = data.reduceMotion ?? reduceMotion
+        monitorVisible = (data.version ?? 0) < 2 ? true : (data.monitorVisible ?? monitorVisible)
+        monitorClickThrough = data.monitorClickThrough ?? monitorClickThrough
+        monitorRightMargin = data.monitorRightMargin ?? monitorRightMargin
+        monitorBottomMargin = data.monitorBottomMargin ?? monitorBottomMargin
+    }
+
     function load(): void {
         let migrated = false
         try {
             const data = JSON.parse(store.text || "{}")
             migrated = (data.version ?? 0) < version
-            accentName = data.accentName ?? accentName
-            interfaceScale = data.interfaceScale ?? interfaceScale
-            reduceMotion = data.reduceMotion ?? reduceMotion
-            monitorVisible = (data.version ?? 0) < 2 ? true : (data.monitorVisible ?? monitorVisible)
-            monitorClickThrough = data.monitorClickThrough ?? monitorClickThrough
-            monitorRightMargin = data.monitorRightMargin ?? monitorRightMargin
-            monitorBottomMargin = data.monitorBottomMargin ?? monitorBottomMargin
+            apply(data)
         } catch (_) {}
         loading = false
         if (migrated)
@@ -76,15 +80,25 @@ QtObject {
     }
 
     property FileView store: FileView {
-        path: Quickshell.statePath("minimal-shell/settings.json")
+        path: Quickshell.statePath("niri-hub/settings.json")
         watchChanges: true
         atomicWrites: true
         onLoaded: root.load()
         onFileChanged: reload()
         onLoadFailed: error => {
-            root.loading = false
             if (error === FileViewError.FileNotFound)
-                root.save()
+                legacyStore.reload()
+            else
+                root.loading = false
         }
+    }
+    property FileView legacyStore: FileView {
+        path: Quickshell.statePath("minimal-shell/settings.json")
+        onLoaded: {
+            try { root.apply(JSON.parse(text || "{}")) } catch (_) {}
+            root.loading = false
+            root.save()
+        }
+        onLoadFailed: _ => { root.loading = false; root.save() }
     }
 }
