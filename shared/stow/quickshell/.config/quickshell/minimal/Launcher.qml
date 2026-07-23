@@ -134,7 +134,7 @@ Item {
 
     component StatusButton: Button {
         id: control
-        property string iconLabel: ""
+        property string iconName: ""
         property string primaryText: ""
         property string secondaryText: ""
         implicitWidth: 150
@@ -155,12 +155,11 @@ Item {
                 Layout.preferredHeight: 28
                 radius: Theme.radiusSmall
                 color: Theme.accentMuted
-                Label {
+                ShellIcon {
                     anchors.centerIn: parent
-                    text: control.iconLabel
+                    text: control.iconName
                     color: Theme.accent
-                    font.pixelSize: control.iconLabel.length > 1 ? 10 : 14
-                    font.weight: Font.Bold
+                    iconSize: 20
                 }
             }
             ColumnLayout {
@@ -170,6 +169,8 @@ Item {
                     Layout.fillWidth: true
                     text: control.primaryText
                     color: Theme.foreground
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontBody
                     font.weight: Font.DemiBold
                     elide: Text.ElideRight
                 }
@@ -177,7 +178,8 @@ Item {
                     Layout.fillWidth: true
                     text: control.secondaryText
                     color: Theme.muted
-                    font.pixelSize: 11
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontCaption
                     elide: Text.ElideRight
                 }
             }
@@ -195,6 +197,8 @@ Item {
         border.color: Theme.outline
         clip: true
 
+        MouseArea { anchors.fill: parent }
+
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Theme.unit * 6
@@ -210,13 +214,15 @@ Item {
                     Label {
                         text: Qt.formatDateTime(clock.date, "HH:mm")
                         color: Theme.foreground
-                        font.pixelSize: 34
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontDisplay
                         font.weight: Font.DemiBold
                     }
                     Label {
                         text: Qt.formatDateTime(clock.date, "dddd, d MMMM")
                         color: Theme.muted
-                        font.pixelSize: 14
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontBody
                     }
                 }
 
@@ -240,22 +246,29 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: "Battery"
                             color: Theme.muted
-                            font.pixelSize: 11
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontCaption
                         }
                     }
                 }
 
                 StatusButton {
-                    iconLabel: "W"
+                    iconName: Networking.wifiEnabled ? "wifi" : "wifi_off"
                     primaryText: root.connectedNetwork?.name || (Networking.wifiEnabled ? "Wi-Fi" : "Wi-Fi off")
                     secondaryText: root.connectedNetwork ? "Connected" : "Networks"
                     onClicked: root.openSection(root.section === "wifi" ? "main" : "wifi")
                 }
                 StatusButton {
-                    iconLabel: "BT"
+                    iconName: root.bluetoothAdapter?.enabled ? "bluetooth" : "bluetooth_disabled"
                     primaryText: "Bluetooth"
                     secondaryText: !root.bluetoothAdapter ? "Unavailable" : root.connectedBluetoothDevices ? `${root.connectedBluetoothDevices} connected` : root.bluetoothAdapter.enabled ? "Available" : "Off"
                     onClicked: root.openSection(root.section === "bluetooth" ? "main" : "bluetooth")
+                }
+                ShellButton {
+                    Layout.preferredWidth: 52 * Theme.scale
+                    symbol: "settings"
+                    text: ""
+                    onClicked: root.shell.openModal("settings")
                 }
             }
 
@@ -292,10 +305,10 @@ Item {
                         }
                     }
                     Item { Layout.fillWidth: true }
-                    Label { text: "Tab switches modes"; color: Theme.muted; font.pixelSize: 12 }
+                    Label { text: "Tab switches modes"; color: Theme.muted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption }
                 }
 
-                TextField {
+                ShellTextField {
                     id: query
                     Layout.fillWidth: true
                     Layout.preferredHeight: 46
@@ -376,7 +389,8 @@ Item {
                                     Layout.fillWidth: true
                                     text: root.mode === "apps" ? modelData.entry.name : modelData
                                     color: Theme.foreground
-                                    font.pixelSize: 15
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontLabel
                                     elide: Text.ElideRight
                                 }
                                 Label {
@@ -384,7 +398,8 @@ Item {
                                     Layout.fillWidth: true
                                     text: modelData.entry.genericName || modelData.entry.comment
                                     color: Theme.muted
-                                    font.pixelSize: 12
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontCaption
                                     elide: Text.ElideRight
                                 }
                             }
@@ -409,9 +424,9 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Button { text: "Back"; flat: true; onClicked: root.closeSection() }
-                    Label { text: "Wi-Fi networks"; color: Theme.foreground; font.pixelSize: 21; font.weight: Font.DemiBold }
+                    Label { text: "Wi-Fi networks"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Item { Layout.fillWidth: true }
-                    Switch {
+                    ShellToggle {
                         text: Networking.wifiEnabled ? "On" : "Off"
                         checked: Networking.wifiEnabled
                         enabled: Networking.wifiHardwareEnabled
@@ -453,7 +468,7 @@ Item {
                                 Layout.preferredHeight: 28
                                 radius: Theme.radiusSmall
                                 color: Theme.accentMuted
-                                Label { anchors.centerIn: parent; text: "W"; color: Theme.accent; font.weight: Font.Bold }
+                                ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "wifi" : "network_wifi"; color: Theme.accent; iconSize: 19 }
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
@@ -462,11 +477,12 @@ Item {
                                 Label {
                                     text: modelData.connected ? "Connected" : modelData.stateChanging ? "Connecting..." : modelData.known ? "Saved network" : modelData.security === WifiSecurityType.Open || modelData.security === WifiSecurityType.Owe ? "Open network" : root.supportsPsk(modelData) ? "Password required" : "Unsupported security"
                                     color: modelData.connected ? Theme.success : Theme.muted
-                                    font.pixelSize: 11
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontCaption
                                 }
                             }
                             Label { text: `${Math.round(modelData.signalStrength * 100)}%`; color: Theme.muted }
-                            Label { text: modelData.connected ? "Disconnect" : "Connect"; color: Theme.accent; font.pixelSize: 12 }
+                            Label { text: modelData.connected ? "Disconnect" : "Connect"; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption }
                         }
                         Connections {
                             target: modelData
@@ -489,7 +505,7 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true
                             Label { text: `Password for ${root.passwordNetwork?.name || "network"}`; color: Theme.foreground }
-                            TextField {
+                            ShellTextField {
                                 id: wifiPassword
                                 Layout.fillWidth: true
                                 echoMode: TextInput.Password
@@ -513,10 +529,10 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Button { text: "Back"; flat: true; onClicked: root.closeSection() }
-                    Label { text: "Bluetooth devices"; color: Theme.foreground; font.pixelSize: 21; font.weight: Font.DemiBold }
+                    Label { text: "Bluetooth devices"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Item { Layout.fillWidth: true }
                     Label { visible: root.bluetoothAdapter?.discovering ?? false; text: "Scanning..."; color: Theme.accent }
-                    Switch {
+                    ShellToggle {
                         text: root.bluetoothAdapter?.enabled ? "On" : "Off"
                         checked: root.bluetoothAdapter?.enabled ?? false
                         enabled: root.bluetoothAdapter !== null
@@ -559,7 +575,7 @@ Item {
                                 Layout.preferredHeight: 30
                                 radius: Theme.radiusSmall
                                 color: Theme.accentMuted
-                                Label { anchors.centerIn: parent; text: "BT"; color: Theme.accent; font.pixelSize: 10; font.weight: Font.Bold }
+                                ShellIcon { anchors.centerIn: parent; text: modelData.connected ? "bluetooth_connected" : "bluetooth"; color: Theme.accent; iconSize: 19 }
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
@@ -568,7 +584,8 @@ Item {
                                 Label {
                                     text: modelData.connected ? "Connected" : modelData.pairing ? "Pairing..." : modelData.state === BluetoothDeviceState.Connecting ? "Connecting..." : modelData.paired ? "Paired" : "New device"
                                     color: modelData.connected ? Theme.success : Theme.muted
-                                    font.pixelSize: 11
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontCaption
                                 }
                             }
                             Label {
@@ -576,7 +593,7 @@ Item {
                                 text: `${Math.round(modelData.battery * 100)}%`
                                 color: Theme.muted
                             }
-                            Label { text: modelData.connected ? "Disconnect" : modelData.paired ? "Connect" : "Pair"; color: Theme.accent; font.pixelSize: 12 }
+                            Label { text: modelData.connected ? "Disconnect" : modelData.paired ? "Connect" : "Pair"; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontCaption }
                         }
                     }
                 }
@@ -611,14 +628,14 @@ Item {
                     anchors.margins: Theme.unit * 5
                     spacing: Theme.unit * 3
 
-                    Label { text: "Bluetooth pairing"; color: Theme.foreground; font.pixelSize: 20; font.weight: Font.DemiBold }
+                    Label { text: "Bluetooth pairing"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Label {
                         Layout.fillWidth: true
                         text: shell.bluetoothAgent.promptType === "confirm" ? `Confirm that ${shell.bluetoothAgent.promptValue} is displayed on the device.` : shell.bluetoothAgent.promptType === "display" ? `Type ${shell.bluetoothAgent.promptValue} on the Bluetooth device, then press Enter there.` : shell.bluetoothAgent.promptType === "authorize" ? `Authorize Bluetooth service ${shell.bluetoothAgent.promptValue}?` : "Enter the code shown by the Bluetooth device."
                         color: Theme.muted
                         wrapMode: Text.Wrap
                     }
-                    TextField {
+                    ShellTextField {
                         id: bluetoothCode
                         visible: shell.bluetoothAgent.promptType === "pin" || shell.bluetoothAgent.promptType === "passkey"
                         Layout.fillWidth: true

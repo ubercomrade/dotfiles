@@ -1,8 +1,21 @@
 module minimal
+singleton MetricsService 1.0 MetricsService.qml
+singleton ShellSettings 1.0 ShellSettings.qml
 singleton Theme 1.0 Theme.qml
 BluetoothAgent 1.0 BluetoothAgent.qml
 Keycap 1.0 Keycap.qml
 LayoutOsd 1.0 LayoutOsd.qml
 Launcher 1.0 Launcher.qml
 ModalWindow 1.0 ModalWindow.qml
+MonitorLayer 1.0 MonitorLayer.qml
+PolkitWindow 1.0 PolkitWindow.qml
+SettingRow 1.0 SettingRow.qml
+SettingsWindow 1.0 SettingsWindow.qml
+ShellButton 1.0 ShellButton.qml
+ShellIcon 1.0 ShellIcon.qml
+ShellSlider 1.0 ShellSlider.qml
+ShellTextField 1.0 ShellTextField.qml
+ShellToggle 1.0 ShellToggle.qml
 ShortcutOverlay 1.0 ShortcutOverlay.qml
+SystemMonitorDashboard 1.0 SystemMonitorDashboard.qml
+SystemMonitorWidget 1.0 SystemMonitorWidget.qml

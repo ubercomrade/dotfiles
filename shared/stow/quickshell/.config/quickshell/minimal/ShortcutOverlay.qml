@@ -9,6 +9,9 @@ Item {
     focus: true
     property var shortcuts: [
         { category: "Launcher", keys: ["Super", "D"], action: "Open launcher" },
+        { category: "Launcher", keys: ["Super", ","], action: "Open settings" },
+        { category: "Launcher", keys: ["Super", "Shift", "M"], action: "Toggle system monitor" },
+        { category: "Launcher", keys: ["Super", "Ctrl", "M"], action: "Monitor dashboard" },
         { category: "Launcher", keys: ["Super", "Shift", "/"], action: "Show shortcuts" },
         { category: "Applications", keys: ["Super", "Return"], action: "Terminal" },
         { category: "Applications", keys: ["Super", "E"], action: "Files" },
@@ -47,6 +50,8 @@ Item {
         border.width: 1
         border.color: Theme.outline
 
+        MouseArea { anchors.fill: parent }
+
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Theme.unit * 5
@@ -54,7 +59,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Label { text: "Keyboard shortcuts"; color: Theme.foreground; font.pixelSize: 21; font.weight: Font.DemiBold }
+                Label { text: "Keyboard shortcuts"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                 Item { Layout.fillWidth: true }
                 Label { text: "Esc to close"; color: Theme.muted }
             }

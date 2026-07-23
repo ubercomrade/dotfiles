@@ -27,7 +27,7 @@ PanelWindow {
     Loader {
         anchors.fill: parent
         active: window.visible
-        sourceComponent: shell.modal === "launcher" ? launcherComponent : shortcutsComponent
+        sourceComponent: shell.modal === "launcher" ? launcherComponent : shell.modal === "shortcuts" ? shortcutsComponent : shell.modal === "settings" ? settingsComponent : monitorComponent
     }
 
     Component {
@@ -37,6 +37,23 @@ PanelWindow {
     Component {
         id: shortcutsComponent
         ShortcutOverlay { shell: window.shell }
+    }
+    Component {
+        id: settingsComponent
+        SettingsWindow { shell: window.shell }
+    }
+    Component {
+        id: monitorComponent
+        SystemMonitorDashboard { }
+    }
+
+    Item {
+        anchors.fill: parent
+        Shortcut {
+            sequence: "Escape"
+            context: Qt.ApplicationShortcut
+            onActivated: shell.closeModal()
+        }
     }
 
 }

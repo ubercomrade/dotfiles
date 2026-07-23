@@ -92,9 +92,9 @@ print_arch_plan() {
     printf 'Plan for Arch host %s:\n' "$host"
     for action in "$@"; do
         case "$action" in
-            full) printf '%s\n' '  - Full Pacman upgrade and complete package manifests' '  - Install Jupytext through uv when absent' '  - Stow every dotfile package and enable the user Polkit service' ;;
-            niri) printf '%s\n' '  - Full Pacman upgrade and Niri session manifest' '  - Stow Niri, Quickshell, Mako, portal, and user systemd configuration' ;;
-            config) printf '%s\n' '  - Stow every dotfile package and enable the user Polkit service' ;;
+            full) printf '%s\n' '  - Full Pacman upgrade and complete package manifests' '  - Install Jupytext through uv when absent' '  - Stow every dotfile package; Quickshell provides the Polkit agent' ;;
+            niri) printf '%s\n' '  - Full Pacman upgrade and Niri session manifest' '  - Stow Niri, Quickshell, Mako, GTK, and portal configuration' ;;
+            config) printf '%s\n' '  - Stow every dotfile package; Quickshell provides the Polkit agent' ;;
             services) printf '%s\n' '  - Enable NetworkManager and Bluetooth system services' ;;
             ly) printf '%s\n' '  - Check display-manager conflicts, then enable Ly on tty2 and disable getty@tty2' ;;
         esac

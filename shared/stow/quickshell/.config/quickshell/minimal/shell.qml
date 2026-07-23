@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Polkit
 import QtQuick
 import "."
 
@@ -14,6 +15,7 @@ Scope {
     property int layoutOsdSerial: 0
     property string keyboardLayout: keyboardLayouts[keyboardLayoutIndex] || "Unknown"
     property alias bluetoothAgent: btAgent
+    property alias polkitFlow: polkitAgent.flow
 
     function openModal(nextModal): void {
         pendingModal = nextModal
@@ -72,9 +74,27 @@ Scope {
         target: "launcher"
         function toggle(): void { root.modal === "launcher" ? root.closeModal() : root.openModal("launcher") }
     }
+    IpcHandler {
+        target: "settings"
+        function toggle(): void { root.modal === "settings" ? root.closeModal() : root.openModal("settings") }
+        function open(section: string): void {
+            ShellSettings.settingsSection = section
+            root.openModal("settings")
+        }
+    }
+    IpcHandler {
+        target: "monitor"
+        function toggle(): void { ShellSettings.monitorVisible = !ShellSettings.monitorVisible }
+        function dashboard(): void { root.modal === "monitor" ? root.closeModal() : root.openModal("monitor") }
+        function clickThrough(): void { ShellSettings.monitorClickThrough = !ShellSettings.monitorClickThrough }
+    }
 
     BluetoothAgent {
         id: btAgent
+    }
+    PolkitAgent {
+        id: polkitAgent
+        path: "/org/quickshell/MinimalShell/PolkitAgent"
     }
     Connections {
         target: btAgent
@@ -96,6 +116,19 @@ Scope {
                 try { root.focusedOutput = JSON.parse(text).name || "" } catch (_) { root.focusedOutput = "" }
                 root.modal = root.pendingModal
             }
+        }
+    }
+    Binding {
+        target: MetricsService
+        property: "active"
+        value: ShellSettings.monitorVisible || root.modal === "monitor" || root.modal === "settings"
+    }
+    Timer {
+        interval: 1500
+        running: true
+        onTriggered: {
+            for (const output in ShellSettings.outputScales)
+                Quickshell.execDetached(["niri", "msg", "output", output, "scale", String(ShellSettings.outputScales[output])])
         }
     }
     Process {
@@ -154,6 +187,27 @@ Scope {
                 required property var modelData
                 shell: root
                 screenData: modelData
+            }
+        }
+    }
+    Variants {
+        model: Quickshell.screens
+        delegate: Component {
+            MonitorLayer {
+                required property var modelData
+                shell: root
+                screenData: modelData
+            }
+        }
+    }
+    Variants {
+        model: Quickshell.screens
+        delegate: Component {
+            PolkitWindow {
+                required property var modelData
+                shell: root
+                screenData: modelData
+                flow: root.polkitFlow
             }
         }
     }

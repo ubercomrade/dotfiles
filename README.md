@@ -40,10 +40,10 @@ Stow refuses to replace existing regular files, but an operation can still be pa
 stow --simulate --no-folding \
   --dir="$PWD/shared/stow" \
   --target="$HOME" \
-  niri quickshell mako portal systemd
+  niri quickshell mako gtk portal
 ```
 
-This previews only Stow links. It does not create `host.kdl` or enable the user Polkit service.
+This previews only Stow links. It does not create `host.kdl`; the Polkit agent is part of Quickshell.
 
 ## Arch quick start
 
@@ -139,14 +139,13 @@ The complete Stow deployment manages these packages:
 | `quickshell` | `~/.config/quickshell/minimal/` |
 | `mako` | `~/.config/mako/config` |
 | `portal` | `~/.config/xdg-desktop-portal/niri-portals.conf` |
-| `systemd` | User Polkit service |
+| `gtk` | GTK dark appearance and Noto fonts |
 | `kitty` | Kitty configuration |
-| `kde` | KDE and qt6ct appearance |
 | `mime` | Default application associations |
 | `nvim` | Neovim and LazyVim configuration |
 | `zed` | Zed settings, keymap, and snippets |
 
-The `niri` preset deploys only the Niri session packages: Niri, Quickshell, Mako, portal, and the user Polkit service. Shared settings include a GNOME-like Quickshell panel on every output, a focused-output launcher on `Super+D`, a shortcut overlay on `Super+Shift+/`, US/RU layouts switched with `Ctrl+Space`, natural touchpad scrolling, Noto fonts, Kitty-oriented notebook rendering, and Python-focused editor defaults. The launcher provides application search, shell commands, and clipboard history through `cliphist`.
+The `niri` preset deploys the Niri session, Quickshell, Mako, GTK, and portal configuration. Quickshell provides a focused-output launcher on `Super+D`, Settings Center on `Super+,`, system monitoring on `Super+Shift+M`, a shortcut overlay on `Super+Shift+/`, layout OSD, and the Polkit authentication agent without a top bar. The launcher provides application search, shell commands, clipboard history, Wi-Fi, and Bluetooth controls.
 
 ## Host customization
 
@@ -175,11 +174,6 @@ Before a NixOS switch, also build the selected host explicitly as shown in the N
 For a limited Arch deployment, remove managed Stow links from the same checkout path:
 
 ```sh
-unit_link="$HOME/.config/systemd/user/polkit-kde-agent.service"
-unit_target=$(readlink -f -- "$unit_link" 2>/dev/null || true)
-case "$unit_target" in
-  "$PWD"/shared/stow/systemd/*) systemctl --user disable polkit-kde-agent.service ;;
-esac
 host_link="$HOME/.config/niri/host.kdl"
 host_target=$(readlink -f -- "$host_link" 2>/dev/null || true)
 case "$host_target" in
@@ -188,11 +182,10 @@ esac
 stow --delete --no-folding \
   --dir="$PWD/shared/stow" \
   --target="$HOME" \
-  niri quickshell mako portal systemd
-systemctl --user daemon-reload
+  niri quickshell mako gtk portal
 ```
 
-Unmanaged Polkit and `host.kdl` links are left untouched. The Stow command removes all links for the selected packages from this checkout, including links created by an earlier deployment. Stow removal does not uninstall Pacman packages or remove tools installed by `uv`.
+The `host.kdl` link is removed only when it belongs to this checkout. The Stow command removes all links for the selected packages from this checkout. Stow removal does not uninstall Pacman packages or remove tools installed by `uv`.
 
 If this repository created Ly on tty2, restore the console with:
 

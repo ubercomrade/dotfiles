@@ -1,8 +1,9 @@
 [Default Applications]
-inode/directory=org.kde.dolphin.desktop
-application/pdf=org.kde.okular.desktop
-image/jpeg=org.kde.gwenview.desktop
-image/png=org.kde.gwenview.desktop
+inode/directory=org.gnome.Nautilus.desktop
+application/pdf=org.gnome.Papers.desktop
+image/jpeg=org.gnome.Loupe.desktop
+image/png=org.gnome.Loupe.desktop
+text/plain=org.gnome.TextEditor.desktop
 x-scheme-handler/http=firefox.desktop
 x-scheme-handler/https=firefox.desktop
 text/html=firefox.desktop

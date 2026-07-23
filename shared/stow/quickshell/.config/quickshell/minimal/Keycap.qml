@@ -16,7 +16,8 @@ Rectangle {
         anchors.centerIn: parent
         text: parent.label
         color: Theme.foreground
-        font.pixelSize: 11
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.fontCaption
         font.weight: Font.DemiBold
     }
 }

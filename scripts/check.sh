@@ -53,14 +53,26 @@ fi
 
 grep -q 'target: "launcher"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'target: "shortcuts"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'target: "settings"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'target: "monitor"' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'event-stream' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'LayoutOsd' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'PolkitAgent' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
+grep -q 'Material Symbols Rounded' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Theme.qml"
+grep -q 'dgop.*meta' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/MetricsService.qml"
 grep -q 'Quickshell.Networking' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
 grep -q 'Quickshell.Bluetooth' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/Launcher.qml"
 grep -q 'skip-at-startup' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 ! grep -q 'Bar {' "$repo_dir/shared/stow/quickshell/.config/quickshell/minimal/shell.qml"
 grep -q 'Ctrl+Space.*switch-layout' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
 grep -q 'Mod+Shift+Slash.*shortcuts' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
+grep -q 'Mod+Comma.*settings' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
+grep -q 'Mod+Shift+M.*monitor' "$repo_dir/shared/stow/niri/.config/niri/config.kdl"
+grep -q '^dgop$' "$repo_dir/arch/packages/niri.txt"
+grep -q '^ttf-material-symbols-variable$' "$repo_dir/arch/packages/niri.txt"
+grep -q '^nautilus$' "$repo_dir/arch/packages/niri.txt"
+! grep -Eq 'dolphin|kate|okular|gwenview|ark|kcalc|breeze|polkit-kde' "$repo_dir/arch/packages/common.txt" "$repo_dir/arch/packages/niri.txt" "$repo_dir/nixos/modules/home.nix" "$repo_dir/shared/stow/mime/.config/mimeapps.list"
+[[ ! -e "$repo_dir/shared/stow/kde" && ! -e "$repo_dir/shared/stow/systemd/.config/systemd/user/polkit-kde-agent.service" ]]
 
 if command -v stow >/dev/null; then
     target=$(mktemp -d)

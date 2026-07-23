@@ -68,14 +68,16 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 text: window.layoutCode
                 color: Theme.accent
-                font.pixelSize: 24
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontTitle
                 font.weight: Font.Bold
             }
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 text: shell.keyboardLayout
                 color: Theme.foreground
-                font.pixelSize: 13
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontBody
             }
         }
     }

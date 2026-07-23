@@ -12,18 +12,15 @@ in
     quickshell
     xwayland-satellite
     kitty
-    kdePackages.dolphin
+    nautilus
     firefox
     libreoffice-fresh
-    kdePackages.kate
-    kdePackages.okular
-    kdePackages.gwenview
-    kdePackages.ark
-    kdePackages.kcalc
+    gnome-text-editor
+    papers
+    loupe
+    file-roller
+    gnome-calculator
     pavucontrol
-    kdePackages.breeze
-    kdePackages.breeze-icons
-    qt6Packages.qt6ct
     bluez
     brightnessctl
     playerctl
@@ -35,6 +32,8 @@ in
     swaylock
     swayidle
     xdg-user-dirs
+    material-symbols
+    dgop
     pixi
     uv
     julia
@@ -61,25 +60,17 @@ in
     "quickshell/minimal".source = "${shared}/quickshell/.config/quickshell/minimal";
     "kitty/kitty.conf".source = "${shared}/kitty/.config/kitty/kitty.conf";
     "mako/config".source = "${shared}/mako/.config/mako/config";
-    "kdeglobals".source = "${shared}/kde/.config/kdeglobals";
-    "qt6ct/qt6ct.conf".source = "${shared}/kde/.config/qt6ct/qt6ct.conf";
+    "gtk-3.0/settings.ini".source = "${shared}/gtk/.config/gtk-3.0/settings.ini";
+    "gtk-4.0/settings.ini".source = "${shared}/gtk/.config/gtk-4.0/settings.ini";
     "xdg-desktop-portal/niri-portals.conf".source = "${shared}/portal/.config/xdg-desktop-portal/niri-portals.conf";
     "mimeapps.list".source = "${shared}/mime/.config/mimeapps.list";
     "nvim".source = "${shared}/nvim/.config/nvim";
     "zed".source = "${shared}/zed/.config/zed";
   };
 
-  systemd.user.services.polkit-kde-agent = {
-    Unit = {
-      Description = "KDE PolicyKit authentication agent";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "${pkgs.kdePackages.polkit-kde-agent-1}/libexec/polkit-kde-authentication-agent-1";
-      Restart = "on-failure";
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
+  dconf.settings."org/gnome/desktop/interface" = {
+    color-scheme = "prefer-dark";
+    font-name = "Noto Sans 11";
   };
 
   programs.home-manager.enable = true;

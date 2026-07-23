@@ -156,7 +156,7 @@ if $install_full || $install_config; then
         [[ -d "$path" ]] && stow_packages+=("$(basename "$path")")
     done
 elif $install_niri; then
-    stow_packages=(niri quickshell mako portal systemd)
+    stow_packages=(niri quickshell mako gtk portal)
 fi
 if ((${#stow_packages[@]})); then
     find_conflicting_targets "$stow_dir" "${stow_packages[@]}"
@@ -203,6 +203,18 @@ if $install_full || $install_niri || $install_config; then
         exit 1
     }
 
+    legacy_polkit_unit="$HOME/.config/systemd/user/polkit-kde-agent.service"
+    if [[ -L "$legacy_polkit_unit" ]]; then
+        legacy_polkit_target=$(readlink "$legacy_polkit_unit")
+        case "$legacy_polkit_target" in
+            "$repo_dir"/shared/stow/systemd/*|*/shared/stow/systemd/*)
+                systemctl --user disable --now polkit-kde-agent.service >/dev/null 2>&1 || true
+                rm -f -- "$legacy_polkit_unit"
+                systemctl --user daemon-reload
+                ;;
+        esac
+    fi
+
     remove_conflicting_targets
 
     # Detect Stow conflicts before changing the target tree without noisy success output.
@@ -215,7 +227,6 @@ if $install_full || $install_niri || $install_config; then
     stow --no-folding --dir="$stow_dir" --target="$HOME" --restow "${packages[@]}"
     mkdir -p "$niri_dir"
     ln -sfn "$host_dir/arch/stow/.config/niri/host.kdl" "$host_link"
-    systemctl --user enable polkit-kde-agent.service
 fi
 
 if $enable_services; then
