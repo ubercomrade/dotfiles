@@ -249,7 +249,7 @@ Item {
         readonly property string detail: UPower.onBattery ? qsTr("%1% remaining, %2 minutes").arg(Math.round(level * 100)).arg(Math.round(UPower.displayDevice.timeToEmpty / 60)) : UPower.displayDevice.timeToFull > 0 ? qsTr("%1% charged, %2 minutes until full").arg(Math.round(level * 100)).arg(Math.round(UPower.displayDevice.timeToFull / 60)) : qsTr("%1% charged").arg(Math.round(level * 100))
 
         Accessible.name: qsTr("Battery: %1").arg(detail)
-        Layout.preferredWidth: 86 * Theme.scale
+        Layout.preferredWidth: 76 * Theme.scale
         Layout.preferredHeight: 52 * Theme.scale
         radius: Theme.radiusMedium
         color: "transparent"
@@ -262,57 +262,11 @@ Item {
             anchors.centerIn: parent
             spacing: Theme.unit * 2
 
-            Item {
-                Layout.preferredWidth: 38 * Theme.scale
-                Layout.preferredHeight: 22 * Theme.scale
-
-                Rectangle {
-                    id: batteryBody
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 34 * Theme.scale
-                    height: 22 * Theme.scale
-                    radius: 5 * Theme.scale
-                    color: "transparent"
-                    border.width: 2 * Theme.scale
-                    border.color: Theme.muted
-
-                    Rectangle {
-                        id: batteryFill
-                        x: 4 * Theme.scale
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 8 * Theme.scale
-                        height: parent.height - 8 * Theme.scale
-                        radius: 2 * Theme.scale
-                        color: batteryIndicator.fillColor
-                        transform: Scale {
-                            origin.x: 0
-                            origin.y: batteryFill.height / 2
-                            xScale: batteryIndicator.level
-                            Behavior on xScale {
-                                NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic }
-                            }
-                        }
-                    }
-
-                    Label {
-                        anchors.centerIn: parent
-                        visible: !UPower.onBattery
-                        text: "\u26a1"
-                        color: Theme.accentForeground
-                        font.pixelSize: 14 * Theme.scale
-                    }
-                }
-
-                Rectangle {
-                    anchors.left: batteryBody.right
-                    anchors.leftMargin: 2 * Theme.scale
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 3 * Theme.scale
-                    height: 9 * Theme.scale
-                    radius: 2 * Theme.scale
-                    color: Theme.muted
-                }
+            ShellIcon {
+                text: UPower.displayDevice.iconName || "battery-missing-symbolic"
+                fallback: "battery-missing-symbolic"
+                color: batteryIndicator.fillColor
+                iconSize: 28
             }
 
             Label {
