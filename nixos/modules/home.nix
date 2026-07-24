@@ -97,6 +97,8 @@ in
     "niri/config.kdl".source = "${shared}/niri/.config/niri/config.kdl";
     "niri/host.kdl".source = "${host}/.config/niri/host.kdl";
     "quickshell/niri-hub".source = "${shared}/quickshell/.config/quickshell/niri-hub";
+    "niri-hub/themes".source = "${shared}/themes/.local/share/niri-hub/themes";
+    ".local/bin/theme-switch".source = "${shared}/bin/.local/bin/theme-switch";
     "kitty/kitty.conf".source = "${shared}/kitty/.config/kitty/kitty.conf";
     "mako/config".source = "${shared}/mako/.config/mako/config";
     "environment.d/desktop.conf".source = "${shared}/environment/.config/environment.d/desktop.conf";
@@ -108,7 +110,6 @@ in
   };
 
   dconf.settings."org/gnome/desktop/interface" = {
-    color-scheme = "prefer-dark";
     font-name = "Cantarell 11";
     icon-theme = "Adwaita";
     cursor-theme = "Adwaita";

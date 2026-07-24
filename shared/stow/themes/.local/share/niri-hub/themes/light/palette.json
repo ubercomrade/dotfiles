@@ -1,0 +1,15 @@
+{
+  "windowBackground": "#eff1f5",
+  "elevatedBackground": "#e6e9ef",
+  "pillBackground": "#dce0e8",
+  "secondaryBackground": "#ccd0da",
+  "textPrimary": "#4c4f69",
+  "textSecondary": "#5c5f77",
+  "textDisabled": "#8c8fa1",
+  "border": "#bcc0cc",
+  "hover": "#dce0e8",
+  "accentForeground": "#eff1f5",
+  "success": "#40a02b",
+  "warning": "#df8e1d",
+  "destructive": "#d20f39"
+}

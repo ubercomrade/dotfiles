@@ -1,25 +1,46 @@
 pragma Singleton
+import QtCore
 import QtQuick
+import Quickshell.Io
 import "."
 
 QtObject {
     id: root
 
-    readonly property color windowBackground: "#1e1e1e"
-    readonly property color elevatedBackground: "#303030"
-    readonly property color pillBackground: "#383838"
-    readonly property color secondaryBackground: "#252525"
-    readonly property color textPrimary: "#ffffff"
-    readonly property color textSecondary: "#c0bfbc"
-    readonly property color textDisabled: "#aaa7ad"
+    property string activeTheme: "dark"
+    property var palette: darkPalette
+    readonly property var darkPalette: ({
+        windowBackground: "#1e1e1e",
+        elevatedBackground: "#303030",
+        pillBackground: "#383838",
+        secondaryBackground: "#252525",
+        textPrimary: "#ffffff",
+        textSecondary: "#c0bfbc",
+        textDisabled: "#aaa7ad",
+        border: "#4a4a4a",
+        hover: "#3d3d3d",
+        accentForeground: "#1c1b1f",
+        success: "#57e389",
+        warning: "#f8e45c",
+        destructive: "#ff7b63"
+    })
+    readonly property string configHome: StandardPaths.writableLocation(StandardPaths.ConfigLocation)
+    readonly property string dataHome: StandardPaths.writableLocation(StandardPaths.GenericDataLocation)
+    readonly property color windowBackground: palette.windowBackground || darkPalette.windowBackground
+    readonly property color elevatedBackground: palette.elevatedBackground || darkPalette.elevatedBackground
+    readonly property color pillBackground: palette.pillBackground || darkPalette.pillBackground
+    readonly property color secondaryBackground: palette.secondaryBackground || darkPalette.secondaryBackground
+    readonly property color textPrimary: palette.textPrimary || darkPalette.textPrimary
+    readonly property color textSecondary: palette.textSecondary || darkPalette.textSecondary
+    readonly property color textDisabled: palette.textDisabled || darkPalette.textDisabled
     readonly property color accent: ShellSettings.accentColor
     readonly property color accentMuted: Qt.rgba(accent.r, accent.g, accent.b, 0.18)
-    readonly property color accentForeground: "#1c1b1f"
-    readonly property color success: "#57e389"
-    readonly property color warning: "#f8e45c"
-    readonly property color destructive: "#ff7b63"
-    readonly property color border: "#4a4a4a"
-    readonly property color hover: "#3d3d3d"
+    readonly property color accentForeground: palette.accentForeground || darkPalette.accentForeground
+    readonly property color success: palette.success || darkPalette.success
+    readonly property color warning: palette.warning || darkPalette.warning
+    readonly property color destructive: palette.destructive || darkPalette.destructive
+    readonly property color border: palette.border || darkPalette.border
+    readonly property color hover: palette.hover || darkPalette.hover
     readonly property color selected: Qt.rgba(accent.r, accent.g, accent.b, 0.25)
     readonly property color scrim: "#99000000"
     readonly property color background: windowBackground
@@ -58,4 +79,30 @@ QtObject {
     readonly property int fontDisplay: Math.round(34 * textScale)
     readonly property int fast: ShellSettings.reduceMotion ? 0 : 100
     readonly property int normal: ShellSettings.reduceMotion ? 0 : 180
+
+    property FileView themeSelection: FileView {
+        id: themeSelection
+        path: `${root.configHome}/niri-hub/theme`
+        watchChanges: true
+        onLoaded: {
+            const name = text().trim()
+            root.activeTheme = name || "dark"
+        }
+        onFileChanged: reload()
+    }
+
+    property FileView paletteFile: FileView {
+        id: paletteFile
+        path: `${root.dataHome}/niri-hub/themes/${root.activeTheme}/palette.json`
+        watchChanges: true
+        onLoaded: {
+            try {
+                root.palette = JSON.parse(text())
+            } catch (_) {
+                root.palette = root.darkPalette
+            }
+        }
+        onFileChanged: reload()
+        onLoadFailed: _ => root.palette = root.darkPalette
+    }
 }

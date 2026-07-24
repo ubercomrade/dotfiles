@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+data_home=${XDG_DATA_HOME:-"$HOME/.local/share"}
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+themes_dir="$data_home/niri-hub/themes"
+selection_file="$config_home/niri-hub/theme"
+runtime_dir="$config_home/niri-hub-theme"
+
+current_theme() {
+    [[ -f $selection_file ]] && <"$selection_file" tr -d '[:space:]' || printf 'dark'
+}
+
+case ${1:-toggle} in
+    apply)
+        theme=$(current_theme)
+        ;;
+    toggle)
+        [[ $(current_theme) == dark ]] && theme=light || theme=dark
+        ;;
+    dark|light)
+        theme=$1
+        ;;
+    *)
+        printf 'Usage: %s [dark|light|toggle|apply]\n' "$0" >&2
+        exit 2
+        ;;
+esac
+
+theme_dir="$themes_dir/$theme"
+for file in palette.json kitty.conf mako.conf; do
+    [[ -f $theme_dir/$file ]] || {
+        printf 'Theme %q is incomplete: missing %s\n' "$theme" "$file" >&2
+        exit 1
+    }
+done
+
+install -d "$runtime_dir" "$(dirname "$selection_file")"
+install -m 644 "$theme_dir/kitty.conf" "$runtime_dir/kitty.conf"
+install -m 644 "$theme_dir/mako.conf" "$runtime_dir/mako.conf"
+selection_tmp=$(mktemp "${selection_file}.XXXXXX")
+printf '%s\n' "$theme" >"$selection_tmp"
+mv "$selection_tmp" "$selection_file"
+
+if command -v gsettings >/dev/null; then
+    gsettings set org.gnome.desktop.interface color-scheme "prefer-$theme" || true
+fi
+if [[ ${THEME_SWITCH_START_MAKO:-1} == 1 ]] && command -v mako >/dev/null; then
+    pkill -x mako || true
+    mako --config "$runtime_dir/mako.conf" >/dev/null 2>&1 &
+fi

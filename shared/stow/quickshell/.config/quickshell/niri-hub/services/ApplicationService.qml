@@ -7,10 +7,12 @@ QtObject {
     function searchableEntries(): var {
         if (cachedEntries.length)
             return cachedEntries
-        cachedEntries = DesktopEntries.applications.values.map(entry => ({
-            entry,
-            haystack: [entry.name, entry.genericName, entry.comment, entry.id, entry.keywords.join(" ")].join(" ").toLowerCase()
-        }))
+        cachedEntries = DesktopEntries.applications.values
+            .filter(entry => entry && entry.name && !entry.noDisplay && Array.isArray(entry.command) && entry.command.length)
+            .map(entry => ({
+                entry,
+                haystack: [entry.name, entry.genericName, entry.comment, entry.id, (entry.keywords || []).join(" ")].join(" ").toLowerCase()
+            }))
         return cachedEntries
     }
 
@@ -38,7 +40,7 @@ QtObject {
         if (entry.runInTerminal)
             Quickshell.execDetached({ command: ["kitty", "--"].concat(entry.command), workingDirectory: entry.workingDirectory })
         else
-            entry.execute()
+            Quickshell.execDetached({ command: entry.command, workingDirectory: entry.workingDirectory })
     }
 
     function runCommand(command): void {

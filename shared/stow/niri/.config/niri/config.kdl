@@ -44,7 +44,7 @@ cursor {
 }
 
 spawn-at-startup "sh" "-c" "mkdir -p \"$HOME/Pictures/Screenshots\""
-spawn-at-startup "mako"
+spawn-at-startup "sh" "-c" "THEME_SWITCH_START_MAKO=0 \"$HOME/.local/bin/theme-switch\" apply && exec mako --config \"$HOME/.config/niri-hub-theme/mako.conf\""
 spawn-at-startup "swayidle" "-w" "timeout" "600" "swaylock -f" "before-sleep" "swaylock -f"
 
 binds {

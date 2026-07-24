@@ -9,7 +9,7 @@ PanelWindow {
     required property var shell
     required property var screenData
     screen: screenData
-    visible: shell.modal !== "none" && screenData.name === shell.focusedOutput
+    visible: shell.modal !== "none" && screenData?.name === shell.focusedOutput
     focusable: visible
     exclusiveZone: 0
     color: Theme.scrim

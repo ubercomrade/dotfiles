@@ -18,7 +18,7 @@ PanelWindow {
     }
 
     screen: screenData
-    visible: screenData.name === shell.focusedOutput
+    visible: screenData?.name === shell.focusedOutput
     focusable: false
     exclusiveZone: 0
     implicitHeight: 112 * Theme.scale
@@ -49,8 +49,8 @@ PanelWindow {
         id: card
         anchors.horizontalCenter: parent.horizontalCenter
         y: window.showing ? Theme.unit * 6 : Theme.unit * 3
-        width: 164 * Theme.scale
-        height: 64 * Theme.scale
+        width: 72 * Theme.scale
+        height: 56 * Theme.scale
         radius: Theme.radiusMedium
         color: Theme.surface
         border.width: 1
@@ -69,15 +69,8 @@ PanelWindow {
                 text: window.layoutCode
                 color: Theme.accent
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontTitle
-                font.weight: Font.DemiBold
-            }
-            Label {
-                anchors.verticalCenter: parent.verticalCenter
-                text: shell.keyboardLayout
-                color: Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontCaption
+                font.pixelSize: Theme.fontDisplay
+                font.weight: Font.Bold
             }
         }
     }

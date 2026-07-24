@@ -11,8 +11,8 @@ PanelWindow {
     property real pressGlobalY: 0
     property int startRight: 0
     property int startBottom: 0
-    readonly property int maximumRightMargin: Math.max(0, screenData.width - implicitWidth)
-    readonly property int maximumBottomMargin: Math.max(0, screenData.height - implicitHeight)
+    readonly property int maximumRightMargin: Math.max(0, (screenData?.width || 0) - implicitWidth)
+    readonly property int maximumBottomMargin: Math.max(0, (screenData?.height || 0) - implicitHeight)
 
     function clampMargins(): void {
         ShellSettings.monitorRightMargin = Math.max(0, Math.min(maximumRightMargin, ShellSettings.monitorRightMargin))
@@ -20,7 +20,7 @@ PanelWindow {
     }
 
     screen: screenData
-    visible: ShellSettings.monitorVisible && screenData.name === shell.focusedOutput
+    visible: ShellSettings.monitorVisible && screenData?.name === shell.focusedOutput
     focusable: false
     exclusiveZone: 0
     implicitWidth: 344 * Theme.scale
