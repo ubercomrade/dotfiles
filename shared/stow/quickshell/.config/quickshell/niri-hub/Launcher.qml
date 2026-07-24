@@ -372,16 +372,6 @@ Item {
                     visible: UPower.displayDevice.isLaptopBattery
                 }
 
-                ShellButton {
-                    Layout.preferredWidth: Theme.iconButtonSize
-                    symbol: Theme.activeTheme === "dark" ? "light_mode" : "dark_mode"
-                    text: ""
-                    accessibleName: Theme.activeTheme === "dark" ? qsTr("Switch to light theme") : qsTr("Switch to dark theme")
-                    ToolTip.visible: hovered
-                    ToolTip.text: accessibleName
-                    onClicked: Quickshell.execDetached(["theme-switch", "toggle"])
-                }
-
                 StatusButton {
                     iconName: Networking.wifiEnabled ? "wifi" : "wifi_off"
                     primaryText: root.connectedNetwork?.name || (Networking.wifiEnabled ? qsTr("Wi-Fi") : qsTr("Wi-Fi off"))

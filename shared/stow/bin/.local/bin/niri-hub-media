@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_osd() {
+    qs -c niri-hub ipc call osd update "$1" "$2" "$3" >/dev/null || true
+}
+
+brightness() {
+    local level
+    IFS=, read -r _ _ _ level _ <<<"$(brightnessctl -m)"
+    level=${level%%%}
+    show_osd brightness "$level" false
+}
+
+volume() {
+    local output level whole fraction percent muted=false
+    output=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+    level=${output#Volume: }
+    level=${level%% *}
+    whole=${level%%.*}
+    fraction=${level#*.}
+    [[ $fraction == "$level" ]] && fraction=0
+    fraction="${fraction}00"
+    percent=$((10#$whole * 100 + 10#${fraction:0:2}))
+    [[ $output == *"[MUTED]"* ]] && muted=true
+    show_osd volume "$percent" "$muted"
+}
+
+case ${1:-} in
+    brightness-up)
+        brightnessctl set 5%+ >/dev/null
+        brightness
+        ;;
+    brightness-down)
+        brightnessctl set 5%- >/dev/null
+        brightness
+        ;;
+    volume-up)
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+        volume
+        ;;
+    volume-down)
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+        volume
+        ;;
+    volume-mute)
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+        volume
+        ;;
+    *)
+        printf 'Usage: %s {brightness-up|brightness-down|volume-up|volume-down|volume-mute}\n' "$0" >&2
+        exit 2
+        ;;
+esac

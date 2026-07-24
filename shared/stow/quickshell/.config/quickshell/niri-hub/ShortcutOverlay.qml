@@ -27,12 +27,12 @@ Item {
         { category: "Windows", keys: ["Super", "Shift", "F"], action: "Fullscreen" },
         { category: "Workspaces", keys: ["Super", "1-9"], action: "Focus workspace" },
         { category: "Workspaces", keys: ["Super", "Shift", "1-9"], action: "Move window" },
-        { category: "Screenshots", keys: ["Print"], action: "Screenshot" },
+        { category: "Screenshots", keys: ["Super", "Shift", "P"], action: "Screenshot" },
         { category: "Screenshots", keys: ["Ctrl", "Print"], action: "Copy screen" },
         { category: "Screenshots", keys: ["Super", "Shift", "S"], action: "Copy selected area" },
-        { category: "Media", keys: ["Brightness + / -"], action: "Adjust brightness" },
-        { category: "Media", keys: ["Volume + / -"], action: "Adjust volume" },
-        { category: "Media", keys: ["Volume mute"], action: "Toggle audio mute" },
+        { category: "Media", keys: ["Fn", "Brightness +/-"], action: "Adjust brightness" },
+        { category: "Media", keys: ["Fn", "Volume +/-"], action: "Adjust volume" },
+        { category: "Media", keys: ["Fn", "Volume mute"], action: "Toggle audio mute" },
         { category: "Media", keys: ["Mic mute"], action: "Toggle microphone" },
         { category: "Media", keys: ["Play / Pause"], action: "Toggle playback" },
         { category: "Media", keys: ["Next"], action: "Next track" },
@@ -42,11 +42,16 @@ Item {
         { category: "Session", keys: ["Super", "Shift", "E"], action: "Exit Niri" }
     ]
     property var categories: ["Launcher", "Applications", "Windows", "Workspaces", "Screenshots", "Media", "Session"]
+    readonly property int columnCount: width >= 760 * Theme.scale ? 3 : 2
+    readonly property var categoryColumns: columnCount === 3
+        ? [["Launcher", "Screenshots", "Session"], ["Applications", "Windows"], ["Workspaces", "Media"]]
+        : [["Launcher", "Screenshots", "Media"], ["Applications", "Windows", "Workspaces", "Session"]]
 
     Rectangle {
         anchors.centerIn: parent
         width: Math.min(Theme.overlayWidth, parent.width - Theme.unit * 8)
-        height: Math.min(640 * Theme.scale, parent.height - Theme.unit * 8)
+        implicitHeight: overlayLayout.implicitHeight + Theme.unit * 10
+        height: Math.min(implicitHeight, 640 * Theme.scale, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -55,6 +60,7 @@ Item {
         MouseArea { anchors.fill: parent }
 
         ColumnLayout {
+            id: overlayLayout
             anchors.fill: parent
             anchors.margins: Theme.unit * 5
             spacing: Theme.unit * 4
@@ -69,11 +75,17 @@ Item {
             Flickable {
                 id: shortcutFlickable
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.preferredHeight: Math.min(shortcutColumns.implicitHeight, 520 * Theme.scale)
                 clip: true
+                contentWidth: width
                 contentHeight: shortcutColumns.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
                 focus: true
                 activeFocusOnTab: true
+
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
 
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Up)
@@ -89,33 +101,43 @@ Item {
                     event.accepted = true
                 }
 
-                Flow {
+                RowLayout {
                     id: shortcutColumns
-                    width: parent.width
-                    spacing: Theme.unit * 5
+                    width: shortcutFlickable.width
+                    spacing: Theme.unit * 4
 
                     Repeater {
-                        model: root.categories
-                        delegate: Column {
-                            required property string modelData
-                            width: Math.min(410 * Theme.scale, (shortcutColumns.width - Theme.unit * 5) / 2)
-                            spacing: Theme.unit * 2
+                        model: root.categoryColumns
+                        delegate: ColumnLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignTop
+                            spacing: Theme.unit * 4
 
-                            Label { text: modelData; color: Theme.accent; font.bold: true }
                             Repeater {
-                                model: root.shortcuts.filter(shortcut => shortcut.category === modelData)
-                                delegate: RowLayout {
-                                    required property var modelData
-                                    width: parent.width
+                                model: modelData
+                                delegate: Column {
+                                    required property string modelData
+                                    Layout.fillWidth: true
                                     spacing: Theme.unit * 2
-                                    Row {
-                                        spacing: Theme.unit
-                                        Repeater {
-                                            model: modelData.keys
-                                            delegate: Keycap { required property string modelData; label: modelData }
+
+                                    Label { text: modelData; color: Theme.accent; font.bold: true }
+                                    Repeater {
+                                        model: root.shortcuts.filter(shortcut => shortcut.category === modelData)
+                                        delegate: RowLayout {
+                                            required property var modelData
+                                            width: parent.width
+                                    spacing: Theme.unit * 2
+                                            Row {
+                                                spacing: Theme.unit
+                                                Repeater {
+                                                    model: modelData.keys
+                                                    delegate: Keycap { required property string modelData; label: modelData }
+                                                }
+                                            }
+                                            Label { Layout.fillWidth: true; text: modelData.action; color: Theme.foreground; elide: Text.ElideRight }
                                         }
                                     }
-                                    Label { Layout.fillWidth: true; text: modelData.action; color: Theme.foreground; elide: Text.ElideRight }
                                 }
                             }
                         }

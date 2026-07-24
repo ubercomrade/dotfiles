@@ -17,6 +17,10 @@ Scope {
     property var keyboardLayouts: ["English (US)", "Russian"]
     property int keyboardLayoutIndex: 0
     property int layoutOsdSerial: 0
+    property int systemOsdSerial: 0
+    property string systemOsdKind: "volume"
+    property int systemOsdValue: 0
+    property bool systemOsdMuted: false
     readonly property string keyboardLayout: keyboardLayouts[keyboardLayoutIndex] || "Unknown"
     property alias bluetoothAgent: btAgent
     property alias polkitFlow: polkitAgent.flow
@@ -65,6 +69,15 @@ Scope {
         function toggle(): void { ShellSettings.monitorVisible = !ShellSettings.monitorVisible }
         function dashboard(): void { root.modal === "monitor" ? root.closeModal() : root.openModal("monitor") }
         function clickThrough(): void { ShellSettings.monitorClickThrough = !ShellSettings.monitorClickThrough }
+    }
+    IpcHandler {
+        target: "osd"
+        function update(kind: string, value: int, muted: bool): void {
+            root.systemOsdKind = kind
+            root.systemOsdValue = value
+            root.systemOsdMuted = muted
+            root.systemOsdSerial++
+        }
     }
 
     BluetoothAgent {
@@ -171,6 +184,16 @@ Scope {
         model: Quickshell.screens
         delegate: Component {
             LayoutOsd {
+                required property var modelData
+                shell: root
+                screenData: modelData
+            }
+        }
+    }
+    Variants {
+        model: Quickshell.screens
+        delegate: Component {
+            SystemOsd {
                 required property var modelData
                 shell: root
                 screenData: modelData

@@ -90,15 +90,15 @@ binds {
     Mod+Shift+8 hotkey-overlay-title="Move window to workspace 8" { move-window-to-workspace 8; }
     Mod+Shift+9 hotkey-overlay-title="Move window to workspace 9" { move-window-to-workspace 9; }
 
-    Print hotkey-overlay-title="Screenshot" { screenshot; }
+    Mod+Shift+P hotkey-overlay-title="Screenshot" { screenshot; }
     Ctrl+Print hotkey-overlay-title="Copy screen screenshot" { screenshot-screen write-to-disk=false; }
     Mod+Shift+S hotkey-overlay-title="Copy selected screenshot" { spawn-sh "grim -g \"$(slurp)\" - | wl-copy"; }
 
-    XF86MonBrightnessUp { spawn "brightnessctl" "set" "5%+"; }
-    XF86MonBrightnessDown { spawn "brightnessctl" "set" "5%-"; }
-    XF86AudioRaiseVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
-    XF86AudioLowerVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
-    XF86AudioMute { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    XF86MonBrightnessUp { spawn-sh "\"$HOME/.local/bin/niri-hub-media\" brightness-up"; }
+    XF86MonBrightnessDown { spawn-sh "\"$HOME/.local/bin/niri-hub-media\" brightness-down"; }
+    XF86AudioRaiseVolume { spawn-sh "\"$HOME/.local/bin/niri-hub-media\" volume-up"; }
+    XF86AudioLowerVolume { spawn-sh "\"$HOME/.local/bin/niri-hub-media\" volume-down"; }
+    XF86AudioMute { spawn-sh "\"$HOME/.local/bin/niri-hub-media\" volume-mute"; }
     XF86AudioMicMute { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
     XF86AudioPlay { spawn "playerctl" "play-pause"; }
     XF86AudioNext { spawn "playerctl" "next"; }

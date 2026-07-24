@@ -20,3 +20,4 @@ ShellToggle 1.0 ShellToggle.qml
 ShortcutOverlay 1.0 ShortcutOverlay.qml
 SystemMonitorDashboard 1.0 SystemMonitorDashboard.qml
 SystemMonitorWidget 1.0 SystemMonitorWidget.qml
+SystemOsd 1.0 SystemOsd.qml

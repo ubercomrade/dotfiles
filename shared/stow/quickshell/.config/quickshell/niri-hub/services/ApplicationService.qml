@@ -2,18 +2,13 @@ import QtQuick
 import Quickshell
 
 QtObject {
-    property var cachedEntries: []
-
     function searchableEntries(): var {
-        if (cachedEntries.length)
-            return cachedEntries
-        cachedEntries = DesktopEntries.applications.values
-            .filter(entry => entry && entry.name && !entry.noDisplay && Array.isArray(entry.command) && entry.command.length)
+        return DesktopEntries.applications.values
+            .filter(entry => entry && entry.name && !entry.noDisplay && entry.command && entry.command.length)
             .map(entry => ({
                 entry,
                 haystack: [entry.name, entry.genericName, entry.comment, entry.id, (entry.keywords || []).join(" ")].join(" ").toLowerCase()
             }))
-        return cachedEntries
     }
 
     function results(query): var {
@@ -37,10 +32,13 @@ QtObject {
     function launch(entry): void {
         if (!entry)
             return
+        const command = []
+        for (let index = 0; index < entry.command.length; index++)
+            command.push(entry.command[index])
         if (entry.runInTerminal)
-            Quickshell.execDetached({ command: ["kitty", "--"].concat(entry.command), workingDirectory: entry.workingDirectory })
+            Quickshell.execDetached({ command: ["kitty", "--"].concat(command), workingDirectory: entry.workingDirectory })
         else
-            Quickshell.execDetached({ command: entry.command, workingDirectory: entry.workingDirectory })
+            Quickshell.execDetached({ command, workingDirectory: entry.workingDirectory })
     }
 
     function runCommand(command): void {

@@ -23,7 +23,7 @@ QtObject {
         case "cyan": return "#63d8e8"
         case "green": return "#83d6a2"
         case "rose": return "#f49ab8"
-        default: return "#89b4fa"
+        default: return "#7f849c"
         }
     }
 

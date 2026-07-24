@@ -49,10 +49,10 @@ PanelWindow {
         id: card
         anchors.horizontalCenter: parent.horizontalCenter
         y: window.showing ? Theme.unit * 6 : Theme.unit * 3
-        width: 72 * Theme.scale
+        width: 96 * Theme.scale
         height: 56 * Theme.scale
-        radius: Theme.radiusMedium
-        color: Theme.surface
+        radius: Theme.radiusPill
+        color: Theme.surfaceRaised
         border.width: 1
         border.color: Theme.outline
         opacity: window.showing ? 1 : 0

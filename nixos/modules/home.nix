@@ -99,6 +99,7 @@ in
     "quickshell/niri-hub".source = "${shared}/quickshell/.config/quickshell/niri-hub";
     "niri-hub/themes".source = "${shared}/themes/.local/share/niri-hub/themes";
     ".local/bin/theme-switch".source = "${shared}/bin/.local/bin/theme-switch";
+    ".local/bin/niri-hub-media".source = "${shared}/bin/.local/bin/niri-hub-media";
     "kitty/kitty.conf".source = "${shared}/kitty/.config/kitty/kitty.conf";
     "mako/config".source = "${shared}/mako/.config/mako/config";
     "environment.d/desktop.conf".source = "${shared}/environment/.config/environment.d/desktop.conf";
