@@ -24,10 +24,16 @@ layout {
     center-focused-column "never"
     default-column-width { proportion 0.5; }
     focus-ring {
-        width 2
-        active-color "#89b4fa"
+        width 1
+        active-color "#7f849c"
         inactive-color "#45475a"
     }
+}
+
+window-rule {
+    geometry-corner-radius 8
+    clip-to-geometry true
+    open-maximized-to-edges false
 }
 
 prefer-no-csd

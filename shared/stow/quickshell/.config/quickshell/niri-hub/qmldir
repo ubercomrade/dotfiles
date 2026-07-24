@@ -4,6 +4,7 @@ singleton MetricsService 1.0 MetricsService.qml
 singleton ShellSettings 1.0 ShellSettings.qml
 singleton Theme 1.0 Theme.qml
 BluetoothAgent 1.0 BluetoothAgent.qml
+ClipboardDelegate 1.0 ClipboardDelegate.qml
 Keycap 1.0 Keycap.qml
 LayoutOsd 1.0 LayoutOsd.qml
 Launcher 1.0 Launcher.qml

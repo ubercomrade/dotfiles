@@ -59,7 +59,6 @@ Scope {
         function clipboard(): void { LauncherState.page = "clipboard"; root.openModal("launcher") }
         function wifi(): void { LauncherState.page = "wifi"; root.openModal("launcher") }
         function bluetooth(): void { LauncherState.page = "bluetooth"; root.openModal("launcher") }
-        function battery(): void { LauncherState.page = "battery"; root.openModal("launcher") }
     }
     IpcHandler {
         target: "monitor"

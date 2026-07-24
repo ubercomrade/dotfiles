@@ -9,6 +9,6 @@ QtObject {
 
     function remove(id): void {
         if (id !== "")
-            Quickshell.execDetached(["cliphist", "delete", id])
+            Quickshell.execDetached(["/bin/sh", "-c", "cliphist delete \"$1\"; rm -f \"$2/$1.\"*", "sh", id, Quickshell.cachePath("clipboard")])
     }
 }

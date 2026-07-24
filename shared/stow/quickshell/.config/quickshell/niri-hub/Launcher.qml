@@ -20,13 +20,15 @@ Item {
     property var clipboardEntries: []
     property string searchQuery: ""
     property var appEntries: shell.applicationResults(searchQuery)
-    property var visibleEntries: mode === "apps" ? appEntries : mode === "clipboard" ? clipboardEntries.filter(entry => entry.preview.toLowerCase().includes(query.text.toLowerCase())) : []
+    property var visibleEntries: mode === "apps" ? appEntries : mode === "clipboard" ? clipboardEntries.filter(entry => entry.searchText.includes(query.text.toLowerCase())) : []
     property var wifiDevice: Networking.devices.values.find(device => device.type === DeviceType.Wifi) || null
     property var wifiNetworks: wifiDevice ? wifiDevice.networks.values.slice().sort((left, right) => Number(right.connected) - Number(left.connected) || right.signalStrength - left.signalStrength || left.name.localeCompare(right.name)) : []
     property var connectedNetwork: wifiNetworks.find(network => network.connected) || null
     property var passwordNetwork: null
     property var bluetoothAdapter: Bluetooth.defaultAdapter
     property var bluetoothDevices: bluetoothAdapter ? bluetoothAdapter.devices.values.slice().sort((left, right) => Number(right.connected) - Number(left.connected) || Number(right.paired) - Number(left.paired) || (left.name || left.deviceName).localeCompare(right.name || right.deviceName)) : []
+    readonly property bool bluetoothReady: bluetoothAdapter?.state === BluetoothAdapterState.Enabled
+    readonly property bool bluetoothTransitioning: bluetoothAdapter?.state === BluetoothAdapterState.Enabling || bluetoothAdapter?.state === BluetoothAdapterState.Disabling
     property int connectedBluetoothDevices: bluetoothDevices.filter(device => device.connected).length
     property string statusMessage: ""
     property string pendingPowerAction: LauncherState.pendingPowerAction
@@ -156,13 +158,54 @@ Item {
         shell.closeModal()
     }
 
+    function clipboardEntry(id, preview): var {
+        const image = preview.match(/^\[\[ binary data (.+?) ([A-Za-z0-9]+) (\d+)x(\d+) \]\]$/)
+        if (image) {
+            const format = image[2].toUpperCase()
+            return {
+                id,
+                preview,
+                type: "image",
+                title: qsTr("%1 image").arg(format),
+                detail: `${image[1]}, ${image[3]} x ${image[4]}`,
+                iconName: "image-x-generic",
+                thumbnailPath: Quickshell.cachePath(`clipboard/${id}.${image[2]}`),
+                searchText: `${preview} ${format} ${image[3]} ${image[4]}`.toLowerCase()
+            }
+        }
+
+        const firstLine = preview.split("\n")[0]
+        if (/^(https?:\/\/)/i.test(firstLine)) {
+            const domain = firstLine.replace(/^https?:\/\//i, "").split("/")[0]
+            return { id, preview, type: "url", title: domain, detail: firstLine, iconName: "emblem-web", searchText: preview.toLowerCase() }
+        }
+        if (/^(\/|~\/|file:\/\/)/.test(firstLine)) {
+            const path = firstLine.replace(/^file:\/\//, "")
+            const parts = path.split("/").filter(Boolean)
+            return { id, preview, type: "file", title: parts.length ? parts[parts.length - 1] : path, detail: path, iconName: "text-x-generic", searchText: preview.toLowerCase() }
+        }
+
+        const lines = preview.split("\n")
+        const command = /^(\.?\/|sudo |git |cd |cargo |nix |systemctl |wl-)/.test(firstLine)
+        return {
+            id,
+            preview,
+            type: command ? "command" : "text",
+            title: firstLine || qsTr("Empty text"),
+            detail: lines.slice(1).join(" ") || (command ? qsTr("Command") : qsTr("Text")),
+            iconName: command ? "utilities-terminal" : "edit-paste",
+            searchText: preview.toLowerCase()
+        }
+    }
+
     Process {
         id: clipboardProcess
         command: ["cliphist", "list"]
         stdout: StdioCollector {
             onStreamFinished: root.clipboardEntries = text.trim() ? text.trim().split("\n").map(line => {
                 const tab = line.indexOf("\t")
-                return { id: tab >= 0 ? line.slice(0, tab) : line, preview: tab >= 0 ? line.slice(tab + 1) : line }
+                const id = tab >= 0 ? line.slice(0, tab) : line
+                return root.clipboardEntry(id, tab >= 0 ? line.slice(tab + 1) : "")
             }) : []
         }
     }
@@ -196,7 +239,7 @@ Item {
     Binding {
         target: root.bluetoothAdapter
         property: "discovering"
-        value: root.section === "bluetooth" && root.bluetoothAdapter?.enabled
+        value: root.section === "bluetooth" && root.bluetoothReady
         when: root.bluetoothAdapter !== null
         restoreMode: Binding.RestoreBindingOrValue
     }
@@ -255,42 +298,31 @@ Item {
         }
     }
 
-    component BatteryIndicator: Button {
+    component BatteryIndicator: Item {
         id: batteryIndicator
         readonly property real level: Math.max(0, Math.min(1, UPower.displayDevice.percentage))
-        readonly property color fillColor: level <= 0.15 ? Theme.danger : UPower.onBattery ? Theme.accent : Theme.success
+        readonly property color iconColor: level <= 0.15 ? Theme.danger : Theme.foreground
         readonly property string detail: UPower.onBattery ? qsTr("%1% remaining, %2").arg(Math.round(level * 100)).arg(qsTr("%n minute(s)", "battery time remaining", Math.round(UPower.displayDevice.timeToEmpty / 60))) : UPower.displayDevice.timeToFull > 0 ? qsTr("%1% charged, %2 until full").arg(Math.round(level * 100)).arg(qsTr("%n minute(s)", "battery time until full", Math.round(UPower.displayDevice.timeToFull / 60))) : qsTr("%1% charged").arg(Math.round(level * 100))
 
         Accessible.name: qsTr("Battery: %1").arg(detail)
-        Layout.preferredWidth: 76 * Theme.scale
+        Layout.preferredWidth: 90 * Theme.scale
         Layout.preferredHeight: 52 * Theme.scale
-        flat: true
-        onClicked: root.openSection(root.section === "battery" ? "main" : "battery")
-        ToolTip.visible: hovered || activeFocus
-        ToolTip.text: batteryIndicator.detail
-
-        background: Rectangle {
-            radius: Theme.radiusMedium
-            color: batteryIndicator.down ? Theme.accentMuted : batteryIndicator.hovered ? Theme.surfaceHover : "transparent"
-            border.width: batteryIndicator.activeFocus ? 2 : 0
-            border.color: Theme.accent
-        }
-
-        contentItem: RowLayout {
+        RowLayout {
+            anchors.centerIn: parent
             spacing: Theme.unit * 2
 
             ShellIcon {
                 text: UPower.displayDevice.iconName || "battery-missing-symbolic"
                 fallback: "battery-missing-symbolic"
-                color: batteryIndicator.fillColor
-                iconSize: 28
+                color: batteryIndicator.iconColor
+                iconSize: 25
             }
 
             Label {
-                text: `${Math.round(batteryIndicator.level * 100)}%`
+                text: qsTr("%1%").arg(Math.round(batteryIndicator.level * 100))
                 color: Theme.foreground
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontCaption
+                font.pixelSize: Theme.fontBody
                 font.weight: Font.DemiBold
             }
         }
@@ -298,11 +330,9 @@ Item {
 
     Rectangle {
         id: panel
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: Math.round(100 * Theme.scale)
+        anchors.centerIn: parent
         width: Math.min(Theme.launcherWidth, parent.width - Theme.unit * 8)
-        height: Math.min(Theme.launcherHeight, Math.max(0, parent.height - anchors.topMargin - Theme.unit * 4))
+        height: Math.min(Theme.launcherHeight, parent.height - Theme.unit * 8)
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -482,37 +512,30 @@ Item {
                     wrapMode: Text.Wrap
                 }
 
-                ListView {
-                    id: results
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    spacing: Theme.unit
-                    model: root.mode === "run" ? [] : root.visibleEntries
-
-                    delegate: Button {
-                        id: resultButton
-                        required property var modelData
-                        required property int index
+                Component {
+                    id: applicationResultComponent
+                    Button {
+                        property var entry
+                        property int itemIndex
                         width: ListView.view.width
                         height: Theme.rowHeight
-                        highlighted: root.currentIndex === index
+                        highlighted: root.currentIndex === itemIndex
                         flat: true
-                        Accessible.name: root.mode === "apps" ? qsTr("Open %1").arg(modelData.entry.name) : qsTr("Copy %1").arg(modelData.preview)
+                        Accessible.name: qsTr("Open %1").arg(entry?.entry?.name || "")
                         onClicked: {
-                            root.currentIndex = index
+                            root.currentIndex = itemIndex
                             root.activate()
                         }
                         background: Rectangle {
                             radius: Theme.radiusMedium
-                            color: resultButton.highlighted ? Theme.accentMuted : resultButton.hovered ? Theme.surfaceRaised : "transparent"
-                            border.width: resultButton.activeFocus ? 2 : 0
+                            color: parent.highlighted ? Theme.accentMuted : parent.hovered ? Theme.surfaceRaised : "transparent"
+                            border.width: parent.activeFocus ? 2 : 0
                             border.color: Theme.accent
                         }
                         contentItem: RowLayout {
                             spacing: Theme.unit * 3
                             Image {
-                                source: Quickshell.iconPath(root.mode === "apps" ? modelData.entry.icon : "edit-paste", "application-x-executable")
+                                source: Quickshell.iconPath(entry?.entry?.icon || "application-x-executable", "application-x-executable")
                                 sourceSize.width: Math.round(28 * Theme.scale)
                                 sourceSize.height: Math.round(28 * Theme.scale)
                                 Layout.preferredWidth: 28 * Theme.scale
@@ -523,7 +546,7 @@ Item {
                                 spacing: 1
                                 Label {
                                     Layout.fillWidth: true
-                                    text: root.mode === "apps" ? modelData.entry.name : modelData.preview
+                                    text: entry?.entry?.name || ""
                                     textFormat: Text.PlainText
                                     color: Theme.foreground
                                     font.family: Theme.fontFamily
@@ -531,15 +554,48 @@ Item {
                                     elide: Text.ElideRight
                                 }
                                 Label {
-                                    visible: root.mode === "apps" && modelData.entry && (modelData.entry.genericName || modelData.entry.comment)
+                                    visible: entry?.entry && (entry.entry.genericName || entry.entry.comment)
                                     Layout.fillWidth: true
-                                    text: root.mode === "apps" && modelData.entry ? modelData.entry.genericName || modelData.entry.comment : ""
+                                    text: entry?.entry ? entry.entry.genericName || entry.entry.comment : ""
                                     textFormat: Text.PlainText
                                     color: Theme.muted
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontCaption
                                     elide: Text.ElideRight
                                 }
+                            }
+                        }
+                    }
+                }
+
+                Component {
+                    id: clipboardResultComponent
+                    ClipboardDelegate { }
+                }
+
+                ListView {
+                    id: results
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    spacing: Theme.unit
+                    model: root.mode === "run" ? [] : root.visibleEntries
+
+                    delegate: Loader {
+                        id: resultLoader
+                        required property var modelData
+                        required property int index
+                        width: ListView.view.width
+                        height: root.mode === "clipboard" ? Math.round(72 * Theme.scale) : Theme.rowHeight
+                        sourceComponent: root.mode === "clipboard" ? clipboardResultComponent : applicationResultComponent
+                        onLoaded: {
+                            if (status !== Loader.Ready)
+                                return
+                            item.entry = modelData
+                            if (root.mode === "clipboard") {
+                                item.shell = root.shell
+                            } else {
+                                item.itemIndex = index
                             }
                         }
                     }
@@ -587,10 +643,10 @@ Item {
                 ListView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    visible: root.wifiDevice && Networking.wifiEnabled
+                    enabled: root.wifiDevice && Networking.wifiEnabled
                     clip: true
                     spacing: Theme.unit
-                    model: root.wifiNetworks
+                    model: root.wifiDevice && Networking.wifiEnabled ? root.wifiNetworks : []
 
                     delegate: Button {
                         id: networkButton
@@ -682,12 +738,12 @@ Item {
                     ShellButton { compact: true; text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
                     Label { Layout.leftMargin: Theme.unit * 2; text: "Bluetooth devices"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                     Item { Layout.fillWidth: true }
-                    Label { visible: root.bluetoothAdapter?.discovering ?? false; text: "Scanning..."; color: Theme.accent }
+                    Label { visible: root.bluetoothReady && root.bluetoothAdapter?.discovering; text: qsTr("Scanning..."); color: Theme.accent }
                     ShellToggle {
-                        text: root.bluetoothAdapter?.enabled ? "On" : "Off"
+                        text: root.bluetoothTransitioning ? qsTr("Turning on...") : root.bluetoothReady ? qsTr("On") : qsTr("Off")
                         accessibleName: qsTr("Bluetooth")
-                        checked: root.bluetoothAdapter?.enabled ?? false
-                        enabled: root.bluetoothAdapter !== null
+                        checked: root.bluetoothReady
+                        enabled: root.bluetoothAdapter !== null && !root.bluetoothTransitioning
                         onToggled: root.bluetoothAdapter.enabled = checked
                     }
                 }
@@ -703,10 +759,10 @@ Item {
                 ListView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    visible: root.bluetoothAdapter?.enabled ?? false
+                    enabled: root.bluetoothReady
                     clip: true
                     spacing: Theme.unit
-                    model: root.bluetoothDevices
+                    model: root.bluetoothReady ? root.bluetoothDevices : []
 
                     delegate: Button {
                         id: deviceButton
@@ -764,41 +820,6 @@ Item {
                 }
             }
 
-            ColumnLayout {
-                visible: root.section === "battery" && UPower.displayDevice.isLaptopBattery
-                Layout.fillWidth: true
-                Layout.fillHeight: false
-                Layout.preferredHeight: visible ? implicitHeight : 0
-                Layout.minimumHeight: 0
-                Layout.maximumHeight: visible ? Infinity : 0
-                spacing: Theme.unit * 3
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    ShellButton { compact: true; text: qsTr("Back"); symbol: "arrow_back"; onClicked: root.closeSection() }
-                    Label { Layout.leftMargin: Theme.unit * 2; text: qsTr("Battery"); color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
-                }
-                Label {
-                    Layout.fillWidth: true
-                    text: qsTr("%1% charged").arg(Math.round((UPower.displayDevice.percentage || 0) * 100))
-                    color: Theme.foreground
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontDisplay
-                }
-                Label {
-                    Layout.fillWidth: true
-                    text: UPower.onBattery ? qsTr("Discharging") : qsTr("Charging or fully charged")
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                }
-                Label {
-                    Layout.fillWidth: true
-                    visible: UPower.displayDevice.timeToEmpty > 0 || UPower.displayDevice.timeToFull > 0
-                    text: UPower.onBattery ? qsTr("%1 remaining").arg(qsTr("%n minute(s)", "battery time remaining", Math.round(UPower.displayDevice.timeToEmpty / 60))) : qsTr("%1 until full").arg(qsTr("%n minute(s)", "battery time until full", Math.round(UPower.displayDevice.timeToFull / 60)))
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                }
-            }
         }
 
         Rectangle {
