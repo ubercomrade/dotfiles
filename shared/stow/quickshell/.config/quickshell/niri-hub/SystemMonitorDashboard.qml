@@ -192,6 +192,7 @@ Item {
                             secondColor: Theme.success
                             fixedMaximum: 100
                         }
+                        Label { text: qsTr("CPU %1%  Memory %2%").arg(MetricsService.cpuUsage.toFixed(1)).arg(MetricsService.memoryUsage.toFixed(1)); color: Theme.muted; font.pixelSize: Theme.fontCaption }
                     }
                 }
                 Rectangle {
@@ -211,6 +212,7 @@ Item {
                             firstColor: Theme.warning
                             secondColor: Theme.danger
                         }
+                        Label { text: qsTr("Down %1/s  Disk %2%").arg(root.formatBytes(MetricsService.networkDown)).arg(MetricsService.diskUsage.toFixed(0)); color: Theme.muted; font.pixelSize: Theme.fontCaption }
                     }
                 }
             }
@@ -242,7 +244,7 @@ Item {
                             id: processRow
                             required property var modelData
                             width: ListView.view.width
-                            height: 26 * Theme.scale
+                            height: Math.max(44 * Theme.scale, Theme.controlHeight)
                             flat: true
                             Accessible.name: qsTr("End process %1").arg(modelData.command || modelData.fullCommand || modelData.pid)
                             onClicked: root.pendingProcess = modelData
@@ -284,25 +286,17 @@ Item {
         }
 
         MouseArea { anchors.fill: parent }
-        Rectangle {
+        ModalCard {
             anchors.centerIn: parent
             width: 420 * Theme.scale
-            implicitHeight: confirmColumn.implicitHeight + Theme.unit * 10
-            radius: Theme.radiusLarge
-            color: Theme.surface
-            border.width: 1
-            border.color: Theme.outline
             ColumnLayout {
                 id: confirmColumn
-                anchors.fill: parent
-                anchors.margins: Theme.unit * 5
-                spacing: Theme.unit * 3
                 Label { text: "End process?"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold }
                 Label { Layout.fillWidth: true; text: root.pendingProcess ? `${root.pendingProcess.command || root.pendingProcess.fullCommand || "Process"} (PID ${root.pendingProcess.pid}) will receive SIGTERM.` : ""; color: Theme.muted; font.family: Theme.fontFamily; wrapMode: Text.Wrap }
                 RowLayout {
                     Layout.alignment: Qt.AlignRight
-                    ShellButton { id: cancelProcessButton; text: qsTr("Cancel"); onClicked: root.pendingProcess = null }
-                    ShellButton { text: qsTr("End process"); danger: true; onClicked: { Quickshell.execDetached(["kill", "-TERM", String(root.pendingProcess.pid)]); root.pendingProcess = null } }
+                    ShellButton { id: cancelProcessButton; text: qsTr("Cancel"); KeyNavigation.tab: endProcessButton; onClicked: root.pendingProcess = null }
+                    ShellButton { id: endProcessButton; text: qsTr("End process"); danger: true; KeyNavigation.tab: cancelProcessButton; onClicked: { Quickshell.execDetached(["kill", "-TERM", String(root.pendingProcess.pid)]); root.pendingProcess = null } }
                 }
             }
         }

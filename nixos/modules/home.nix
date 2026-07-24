@@ -33,7 +33,7 @@ in
     swayidle
     xdg-user-dirs
     adwaita-icon-theme
-    cantarell-fonts
+    adwaita-fonts
     dgop
     pixi
     uv
@@ -59,6 +59,7 @@ in
     jq
     lua
     qt6Packages.qtdeclarative
+    qt6Packages.qt5compat
     qt6Packages.qtsvg
   ];
 
@@ -98,6 +99,7 @@ in
     "quickshell/niri-hub".source = "${shared}/quickshell/.config/quickshell/niri-hub";
     "kitty/kitty.conf".source = "${shared}/kitty/.config/kitty/kitty.conf";
     "mako/config".source = "${shared}/mako/.config/mako/config";
+    "environment.d/desktop.conf".source = "${shared}/environment/.config/environment.d/desktop.conf";
     "gtk-3.0/settings.ini".source = "${shared}/gtk/.config/gtk-3.0/settings.ini";
     "gtk-4.0/settings.ini".source = "${shared}/gtk/.config/gtk-4.0/settings.ini";
     "xdg-desktop-portal/niri-portals.conf".source = "${shared}/portal/.config/xdg-desktop-portal/niri-portals.conf";
@@ -108,6 +110,16 @@ in
   dconf.settings."org/gnome/desktop/interface" = {
     color-scheme = "prefer-dark";
     font-name = "Cantarell 11";
+    icon-theme = "Adwaita";
+    cursor-theme = "Adwaita";
+    cursor-size = 24;
+  };
+
+  home.sessionVariables = {
+    QT_QPA_PLATFORMTHEME = "gtk3";
+    XCURSOR_THEME = "Adwaita";
+    XCURSOR_SIZE = "24";
+    XCURSOR_PATH = "/usr/share/icons:/usr/local/share/icons:/home/${username}/.icons:/home/${username}/.local/share/icons";
   };
 
   programs.home-manager.enable = true;

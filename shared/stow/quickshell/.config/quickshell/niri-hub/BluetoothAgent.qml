@@ -9,6 +9,7 @@ QtObject {
     property string promptValue: ""
     property string promptMessage: ""
     property string statusMessage: ""
+    property string statusKind: "idle"
     property bool busy: false
 
     function pair(device): void {
@@ -18,7 +19,8 @@ QtObject {
         promptType = "none"
         promptValue = ""
         promptMessage = ""
-        statusMessage = `Pairing with ${device.name || device.deviceName || device.address}`
+        statusMessage = qsTr("Pairing with %1").arg(device.name || device.deviceName || device.address)
+        statusKind = "progress"
         busy = true
         controller.write(`pair ${device.address}\n`)
     }
@@ -38,7 +40,8 @@ QtObject {
         promptType = "none"
         promptValue = ""
         promptMessage = ""
-        statusMessage = "Pairing cancelled"
+        statusMessage = qsTr("Pairing cancelled")
+        statusKind = "cancelled"
         busy = false
         pendingDevice = null
     }
@@ -85,7 +88,8 @@ QtObject {
                 pendingDevice.trusted = true
                 pendingDevice.connect()
             }
-            statusMessage = "Pairing successful"
+            statusMessage = qsTr("Pairing successful")
+            statusKind = "success"
             busy = false
             promptType = "none"
             pendingDevice = null
@@ -93,7 +97,8 @@ QtObject {
         } else {
             match = promptMessage.match(/Failed to pair:\s*([^\r\n]+)/i)
             if (match) {
-                statusMessage = `Pairing failed: ${match[1]}`
+                statusMessage = qsTr("Pairing failed: %1").arg(match[1])
+                statusKind = "error"
                 busy = false
                 promptType = "none"
                 pendingDevice = null
@@ -114,7 +119,8 @@ QtObject {
             root.promptValue = ""
             root.promptMessage = ""
             root.pendingDevice = null
-            root.statusMessage = `Bluetooth agent stopped (${exitCode})`
+            root.statusMessage = qsTr("Bluetooth agent stopped (%1)").arg(exitCode)
+            root.statusKind = "error"
         }
 
         stdout: SplitParser {

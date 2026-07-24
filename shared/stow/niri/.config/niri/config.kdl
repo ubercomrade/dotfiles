@@ -32,10 +32,13 @@ layout {
 
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot %Y-%m-%d %H-%M-%S.png"
+cursor {
+    xcursor-theme "Adwaita"
+    xcursor-size 24
+}
 
 spawn-at-startup "sh" "-c" "mkdir -p \"$HOME/Pictures/Screenshots\""
 spawn-at-startup "mako"
-    spawn-at-startup "sh" "-c" "gsettings set org.gnome.desktop.interface color-scheme prefer-dark; gsettings set org.gnome.desktop.interface font-name 'Cantarell 11'"
 spawn-at-startup "swayidle" "-w" "timeout" "600" "swaylock -f" "before-sleep" "swaylock -f"
 
 binds {

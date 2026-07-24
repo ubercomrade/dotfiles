@@ -6,9 +6,10 @@ import QtQuick
 QtObject {
     id: root
 
-    property int version: 4
+    property int version: 5
     property string accentName: "blue"
     property real interfaceScale: 1.0
+    property real textScale: 1.0
     property bool reduceMotion: false
     property bool monitorVisible: false
     property bool monitorClickThrough: false
@@ -28,7 +29,10 @@ QtObject {
 
     function apply(data): void {
         accentName = data.accentName ?? accentName
-        interfaceScale = data.interfaceScale ?? interfaceScale
+        const savedInterfaceScale = Number(data.interfaceScale)
+        interfaceScale = Number.isFinite(savedInterfaceScale) ? Math.max(0.75, Math.min(2, savedInterfaceScale)) : interfaceScale
+        const savedTextScale = Number(data.textScale)
+        textScale = Number.isFinite(savedTextScale) ? Math.max(0.8, Math.min(1.5, savedTextScale)) : textScale
         reduceMotion = data.reduceMotion ?? reduceMotion
         monitorVisible = (data.version ?? 0) < 2 ? true : (data.monitorVisible ?? monitorVisible)
         monitorClickThrough = data.monitorClickThrough ?? monitorClickThrough
@@ -58,6 +62,7 @@ QtObject {
             version,
             accentName,
             interfaceScale,
+            textScale,
             reduceMotion,
             monitorVisible,
             monitorClickThrough,
@@ -68,6 +73,7 @@ QtObject {
 
     onAccentNameChanged: scheduleSave()
     onInterfaceScaleChanged: scheduleSave()
+    onTextScaleChanged: scheduleSave()
     onReduceMotionChanged: scheduleSave()
     onMonitorVisibleChanged: scheduleSave()
     onMonitorClickThroughChanged: scheduleSave()

@@ -49,12 +49,13 @@ QtObject {
     readonly property int overlayWidth: Math.round(900 * scale)
     readonly property int overlayHeight: Math.round(650 * scale)
     readonly property string fontFamily: "Cantarell"
-    readonly property string monoFamily: "Noto Sans Mono"
-    readonly property int fontCaption: Math.round(11 * scale)
-    readonly property int fontBody: Math.round(14 * scale)
-    readonly property int fontLabel: Math.round(15 * scale)
-    readonly property int fontTitle: Math.round(21 * scale)
-    readonly property int fontDisplay: Math.round(34 * scale)
+    readonly property string monoFamily: "Adwaita Mono"
+    readonly property real textScale: ShellSettings.textScale
+    readonly property int fontCaption: Math.round(12 * textScale)
+    readonly property int fontBody: Math.round(16 * textScale)
+    readonly property int fontLabel: Math.round(16 * textScale)
+    readonly property int fontTitle: Math.round(21 * textScale)
+    readonly property int fontDisplay: Math.round(34 * textScale)
     readonly property int fast: ShellSettings.reduceMotion ? 0 : 100
     readonly property int normal: ShellSettings.reduceMotion ? 0 : 180
 }

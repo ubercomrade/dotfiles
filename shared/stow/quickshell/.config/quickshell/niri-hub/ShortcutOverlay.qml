@@ -11,6 +11,7 @@ Item {
     focus: true
     property var shortcuts: [
         { category: "Launcher", keys: ["Super", "D"], action: "Open launcher" },
+        { category: "Launcher", keys: ["Super", "V"], action: "Open clipboard history" },
         { category: "Launcher", keys: ["Super", "Shift", "M"], action: "Toggle system monitor" },
         { category: "Launcher", keys: ["Super", "Ctrl", "M"], action: "Monitor dashboard" },
         { category: "Launcher", keys: ["Super", "Shift", "/"], action: "Show shortcuts" },

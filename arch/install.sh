@@ -156,7 +156,7 @@ if $install_full || $install_config; then
         [[ -d "$path" ]] && stow_packages+=("$(basename "$path")")
     done
 elif $install_niri; then
-    stow_packages=(niri quickshell mako gtk portal systemd)
+    stow_packages=(environment kitty mako mime niri quickshell gtk portal systemd)
 fi
 if ((${#stow_packages[@]})); then
     find_conflicting_targets "$stow_dir" "${stow_packages[@]}"

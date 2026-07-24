@@ -2,6 +2,7 @@
 niri
 xwayland-satellite
 quickshell
+qt6-5compat
 qt6-svg
 stow
 git
@@ -37,7 +38,7 @@ xdg-desktop-portal-gnome
 gnome-keyring
 ly
 xdg-user-dirs
-cantarell-fonts
+adwaita-fonts
 adwaita-icon-theme
 power-profiles-daemon
 dgop

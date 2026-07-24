@@ -1,6 +1,6 @@
 # Niri + Quickshell dotfiles
 
-> Last reviewed: 2026-07-20
+> Last reviewed: 2026-07-24
 
 Opinionated dotfiles for a minimal Qt-oriented Wayland desktop built around Niri and Quickshell. The repository supports Arch Linux and NixOS, separates shared user configuration from host-specific hardware settings, and can deploy either only the Niri session or the complete desktop environment.
 
@@ -40,7 +40,7 @@ Stow refuses to replace existing regular files, but an operation can still be pa
 stow --simulate --no-folding \
   --dir="$PWD/shared/stow" \
   --target="$HOME" \
-  niri quickshell mako gtk portal
+  environment kitty mako mime niri quickshell gtk portal systemd
 ```
 
 This previews only Stow links. It does not create `host.kdl`; the Polkit agent is part of Quickshell.
@@ -139,13 +139,16 @@ The complete Stow deployment manages these packages:
 | `quickshell` | `~/.config/quickshell/niri-hub/` |
 | `mako` | `~/.config/mako/config` |
 | `portal` | `~/.config/xdg-desktop-portal/niri-portals.conf` |
-| `gtk` | GTK dark appearance and Cantarell fonts |
+| `environment` | Shared GTK/Qt platform-theme and cursor environment |
+| `gtk` | GTK dark Adwaita appearance, icons, and cursor fallback settings |
 | `kitty` | Kitty configuration |
 | `mime` | Default application associations |
 | `nvim` | Neovim and LazyVim configuration |
 | `systemd` | Restartable Quickshell user service |
 
-The `niri` preset deploys the Niri session, Quickshell, Mako, GTK, and portal configuration. Niri Hub is a focused-output GNOME-like launcher and command center: `Super+D` opens applications and system pages, while `Super+V` opens clipboard history. It includes Apps, Clipboard, Wi-Fi, Bluetooth, Battery, and power actions, plus system monitoring on `Super+Shift+M`, a shortcut overlay on `Super+Shift+/`, layout OSD, and the Polkit authentication agent without a top bar. The systemd user services are `quickshell.service` and `cliphist.service`.
+The `niri` preset deploys the Niri session, Quickshell, Mako, GTK, portal, Kitty, MIME, shared graphical environment, and systemd configuration. The session uses the GTK3 Qt platform theme, Adwaita icons and a size-24 Adwaita cursor. Niri Hub is a focused-output GNOME-like launcher and command center: `Super+D` opens applications and system pages, while `Super+V` opens clipboard history. It includes Apps, Clipboard, Wi-Fi, Bluetooth, Battery, and power actions, plus system monitoring on `Super+Shift+M`, a shortcut overlay on `Super+Shift+/`, layout OSD, and the Polkit authentication agent without a top bar. The systemd user services are `quickshell.service` and `cliphist.service`.
+
+Intentional omissions: no permanent bar, notification history, workspace indicator, audio controls, or StatusNotifier tray. The launcher is the on-demand system surface; StatusNotifier-only applications require their own integration or a future on-demand Hub page.
 
 ## Host customization
 
@@ -183,7 +186,7 @@ systemctl --user disable --now quickshell.service cliphist.service
 stow --delete --no-folding \
   --dir="$PWD/shared/stow" \
   --target="$HOME" \
-  niri quickshell mako gtk portal systemd
+   environment kitty mako mime niri quickshell gtk portal systemd
 ```
 
 The `host.kdl` link is removed only when it belongs to this checkout. The Stow command removes all links for the selected packages from this checkout. Stow removal does not uninstall Pacman packages or remove tools installed by `uv`.

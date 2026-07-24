@@ -33,6 +33,9 @@
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
+    QT_QPA_PLATFORMTHEME = "gtk3";
+    XCURSOR_THEME = "Adwaita";
+    XCURSOR_SIZE = "24";
   };
-  fonts.packages = [ pkgs.cantarell-fonts ];
+  fonts.packages = [ pkgs.adwaita-fonts ];
 }

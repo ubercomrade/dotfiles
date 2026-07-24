@@ -7,6 +7,7 @@ BluetoothAgent 1.0 BluetoothAgent.qml
 Keycap 1.0 Keycap.qml
 LayoutOsd 1.0 LayoutOsd.qml
 Launcher 1.0 Launcher.qml
+ModalCard 1.0 ModalCard.qml
 ModalWindow 1.0 ModalWindow.qml
 MonitorLayer 1.0 MonitorLayer.qml
 PolkitWindow 1.0 PolkitWindow.qml

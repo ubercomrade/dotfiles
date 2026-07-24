@@ -3,6 +3,7 @@ niri
 xwayland-satellite
 quickshell
 qt6-declarative
+qt6-5compat
 qt6-svg
 stow
 kitty
@@ -35,7 +36,7 @@ xdg-desktop-portal-gtk
 xdg-desktop-portal-gnome
 gnome-keyring
 xdg-user-dirs
-cantarell-fonts
+adwaita-fonts
 adwaita-icon-theme
 power-profiles-daemon
 dgop

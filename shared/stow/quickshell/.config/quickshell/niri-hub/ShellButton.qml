@@ -38,7 +38,7 @@ Button {
             Layout.fillWidth: root.iconOnly
             visible: root.symbol !== ""
             text: root.symbol
-            color: root.primary || root.danger ? Theme.accentForeground : Theme.foreground
+            color: !root.enabled ? Theme.disabled : root.primary || root.danger ? Theme.accentForeground : Theme.foreground
             iconSize: root.compact ? 17 : 19
         }
         Label {
