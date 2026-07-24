@@ -51,7 +51,7 @@ PanelWindow {
         y: window.showing ? Theme.unit * 6 : Theme.unit * 3
         width: 164 * Theme.scale
         height: 64 * Theme.scale
-        radius: Theme.radiusLarge
+        radius: Theme.radiusMedium
         color: Theme.surface
         border.width: 1
         border.color: Theme.outline
@@ -70,14 +70,14 @@ PanelWindow {
                 color: Theme.accent
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontTitle
-                font.weight: Font.Bold
+                font.weight: Font.DemiBold
             }
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 text: shell.keyboardLayout
-                color: Theme.foreground
+                color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: Theme.fontCaption
             }
         }
     }
